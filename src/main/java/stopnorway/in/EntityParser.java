@@ -11,13 +11,11 @@ import javax.xml.stream.events.Attribute;
 import javax.xml.stream.events.EndElement;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static javax.xml.stream.XMLStreamConstants.END_ELEMENT;
 import static javax.xml.stream.XMLStreamConstants.START_ELEMENT;
@@ -29,6 +27,8 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
     private final Collection<Field> fields;
 
     private final ParseState<E> state;
+
+    private final LinkedList<Stacked> stack = new LinkedList<>();
 
     public EntityParser(Class<E> type, EntityMaker<E> entityMaker, Field... fields) {
         this(type, entityMaker, Arrays.asList(fields));
@@ -42,11 +42,14 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[" + type.getSimpleName() + "/" + fields + "]";
+        return getClass().getSimpleName() + "[" + type.getSimpleName() + "/" + fields +
+                " stack: " + stack.stream().map(Object::toString).collect(Collectors.joining(" => ")) +
+                "]";
     }
 
     @Override
     public void accept(XMLEvent event) {
+        stack(event);
         try {
             int eventType = event.getEventType();
             if (eventType == START_ELEMENT) {
@@ -93,6 +96,21 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
     @Override
     public Map<Id, E> get() {
         return state.get();
+    }
+
+    private void stack(XMLEvent event) {
+        if (event.getEventType() == START_ELEMENT) {
+            stack.addLast(new Stacked(
+                    event.asStartElement().getName().getLocalPart(),
+                    event.getLocation().getLineNumber()));
+        } else if (event.getEventType() == END_ELEMENT) {
+            Stacked unstacked = stack.getLast();
+            if (unstacked.getName().equals(event.asEndElement().getName().getLocalPart())) {
+                stack.removeLast();
+            } else {
+                throw new IllegalStateException(this + " got unexpected element: " + event);
+            }
+        }
     }
 
     private String contents(XMLEvent event) {
@@ -165,6 +183,32 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
     public interface EntityMaker<E extends Entity> {
 
         E entity(Id id, Map<Field, Object> values);
+    }
+
+    public final static class Stacked {
+
+        private final String name;
+
+        private final int line;
+
+        Stacked(String name, int line) {
+
+            this.name = name;
+            this.line = line;
+        }
+
+        @Override
+        public String toString() {
+            return name + "@" + line;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public int getLine() {
+            return line;
+        }
     }
 
 }
