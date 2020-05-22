@@ -4,18 +4,20 @@ import stopnorway.database.Entity;
 import stopnorway.database.Id;
 
 import java.util.EnumMap;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ParseState<E extends Entity> {
 
-    private final Map<Id, E> map = new HashMap<>();
-
     private final EntityParser.EntityMaker<E> entityMaker;
 
+    private final Map<Id, E> map = new LinkedHashMap<>();
+
     private Field activeField;
+
+    private Sublist activeSublist;
 
     private Id activeId;
 
@@ -26,17 +28,7 @@ public class ParseState<E extends Entity> {
         this.entityMaker = entityMaker;
     }
 
-    @Override
-    public String toString() {
-        return getClass().getSimpleName() + "[" + Stream.of(
-                Stream.of(map.size() + " parsed"),
-                activeField == null ? Stream.<String>empty() : Stream.of("activeField: " + activeField),
-                activeId == null ? Stream.<String>empty() : Stream.of("activeId: " + activeId),
-                fieldValues == null ? Stream.<String>empty() : Stream.of("fields: " + fieldValues)
-        ).flatMap(s -> s).collect(Collectors.joining(", ")) + "]";
-    }
-
-    public void buildEntity() {
+    public void completeEntityBuild() {
         if (activeId == null) {
             throw new IllegalStateException(this + " has no active id");
         }
@@ -52,11 +44,36 @@ public class ParseState<E extends Entity> {
         fieldValues = null;
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "[" + Stream.of(
+                Stream.of(map.size() + " parsed"),
+                activeField == null ? Stream.<String>empty() : Stream.of("activeField: " + activeField),
+                activeId == null ? Stream.<String>empty() : Stream.of("activeId: " + activeId),
+                fieldValues == null ? Stream.<String>empty() : Stream.of("fields: " + fieldValues)
+        ).flatMap(s -> s).collect(Collectors.joining(", ")) + "]";
+    }
+
     public void startBuildingEntity(Id id) {
         if (this.activeId != null) {
             throw new IllegalStateException(this + " is already building, received: " + id);
         }
         this.activeId = id;
+    }
+
+    public void startBuildingList(Sublist sublist) {
+        activeSublist = sublist;
+    }
+
+    public void stopBuildingList(Sublist sublist) {
+
+    }
+
+    private Map<Field, Object> fieldValues() {
+        if (fieldValues == null) {
+            fieldValues = new EnumMap<>(Field.class);
+        }
+        return fieldValues;
     }
 
     boolean isBuildingEntity() {
@@ -89,12 +106,5 @@ public class ParseState<E extends Entity> {
             throw new IllegalStateException(this + " cannot set to unknown field: '" + object + "''");
         }
         fieldValues().put(activeField, object);
-    }
-
-    private Map<Field, Object> fieldValues() {
-        if (fieldValues == null) {
-            fieldValues = new EnumMap<>(Field.class);
-        }
-        return fieldValues;
     }
 }

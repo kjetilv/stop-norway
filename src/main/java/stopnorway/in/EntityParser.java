@@ -1,5 +1,6 @@
 package stopnorway.in;
 
+import org.jetbrains.annotations.NotNull;
 import stopnorway.database.Entity;
 import stopnorway.database.Id;
 import stopnorway.database.Operator;
@@ -26,6 +27,8 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
 
     private final Collection<Field> fields;
 
+    private final Map<Sublist, EntityParser<?>> sublists;
+
     private final ParseState<E> state;
 
     private final LinkedList<Stacked> stack = new LinkedList<>();
@@ -35,16 +38,21 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
     }
 
     public EntityParser(Class<E> type, EntityMaker<E> entityMaker, Collection<Field> fields) {
-        this.type = type;
-        this.fields = fields;
-        this.state = new ParseState<>(entityMaker);
+        this(type, new ParseState<>(entityMaker), fields, null);
     }
 
-    @Override
-    public String toString() {
-        return getClass().getSimpleName() + "[" + type.getSimpleName() + "/" + fields +
-                " stack: " + stack.stream().map(Object::toString).collect(Collectors.joining(" => ")) +
-                "]";
+    private EntityParser(
+            Class<E> type,
+            ParseState<E> state,
+            Collection<Field> fields,
+            Map<Sublist, EntityParser<?>> sublists
+    ) {
+        this.type = type;
+        this.fields = fields;
+        this.sublists = sublists == null || sublists.isEmpty()
+                ? Collections.emptyMap()
+                : Map.copyOf(sublists);
+        this.state = state;
     }
 
     @Override
@@ -59,12 +67,15 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
                     return;
                 }
                 if (state.isBuildingEntity()) {
-                    field(startElement).ifPresent(field -> {
-                        state.startLookingForField(field);
-                        if (state.isLookingForField(FieldType.Ref)) {
-                            state.setFieldValue(ref(event));
-                        }
-                    });
+                    startMatch(this.fields, startElement)
+                            .ifPresent(field -> {
+                                state.startLookingForField(field);
+                                if (state.isLookingForField(FieldType.Ref)) {
+                                    state.setFieldValue(ref(event));
+                                }
+                            });
+                    startMatch(this.sublists.keySet(), startElement)
+                            .ifPresent(state::startBuildingList);
                     return;
                 }
             }
@@ -81,16 +92,32 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
             if (eventType == END_ELEMENT) {
                 EndElement endElement = event.asEndElement();
                 if (isEntity(endElement)) {
-                    state.buildEntity();
+                    state.completeEntityBuild();
                     return;
                 }
-                field(endElement).ifPresent(state::stopLookingForField);
+                endMatch(this.fields, endElement)
+                        .ifPresent(state::stopLookingForField);
+                endMatch(this.sublists.keySet(), endElement)
+                        .ifPresent(state::stopBuildingList);
             }
         } catch (Exception e) {
             Location loc = event.getLocation();
             String locString = loc.toString().replaceAll("\n", ", ");
             throw new IllegalStateException(this + ": Failed @ line " + loc.getLineNumber() + " : " + locString, e);
         }
+    }
+
+    public <S extends Entity> EntityParser<E> withSublist(Sublist sublist, EntityParser<S> entityParser) {
+        LinkedHashMap<Sublist, EntityParser<?>> newSublists = new LinkedHashMap<>(sublists);
+        newSublists.put(sublist, entityParser);
+        return new EntityParser<>(type, state, fields, newSublists);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "[" + type.getSimpleName() + "/" + fields +
+                " stack: " + stack.stream().map(Object::toString).collect(Collectors.joining(" => ")) +
+                "]";
     }
 
     @Override
@@ -101,11 +128,11 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
     private void stack(XMLEvent event) {
         if (event.getEventType() == START_ELEMENT) {
             stack.addLast(new Stacked(
-                    event.asStartElement().getName().getLocalPart(),
+                    startedElement(event),
                     event.getLocation().getLineNumber()));
         } else if (event.getEventType() == END_ELEMENT) {
             Stacked unstacked = stack.getLast();
-            if (unstacked.getName().equals(event.asEndElement().getName().getLocalPart())) {
+            if (unstacked.getName().equals(endedElement(event))) {
                 stack.removeLast();
             } else {
                 throw new IllegalStateException(this + " got unexpected element: " + event);
@@ -153,11 +180,34 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
         return id(startElement, "ref");
     }
 
-    private static Optional<Field> field(StartElement startElement) {
-        return Arrays.stream(Field.values())
-                .filter(field ->
-                        field.startMatch(startElement))
+    @NotNull
+    private static <M extends EnumMatch<M>> Optional<M> startMatch(
+            Collection<M> matches,
+            StartElement startElement
+    ) {
+        return matches.stream()
+                .filter(match ->
+                        match.startMatch(startElement))
                 .findFirst();
+    }
+
+    @NotNull
+    private static <M extends EnumMatch<M>> Optional<M> endMatch(
+            Collection<M> matches,
+            EndElement endElement
+    ) {
+        return matches.stream()
+                .filter(match ->
+                        match.endMatch(endElement))
+                .findFirst();
+    }
+
+    private static String startedElement(XMLEvent event) {
+        return event.asStartElement().getName().getLocalPart();
+    }
+
+    private static String endedElement(XMLEvent event) {
+        return event.asEndElement().getName().getLocalPart();
     }
 
     private static String element(StartElement startElement) {

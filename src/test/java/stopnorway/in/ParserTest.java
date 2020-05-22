@@ -9,9 +9,7 @@ import stopnorway.database.Operator;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -19,21 +17,10 @@ class ParserTest {
 
     @Test
     void parse_ssp() {
-        Map<Id, Entity> map =
-                Arrays.stream(Operator.values()).parallel()
-                        .map(Parser::entities)
-                        .map(Map::entrySet)
-                        .flatMap(Collection::stream)
-                        .collect(Collectors.toMap(
-                                Map.Entry::getKey,
-                                Map.Entry::getValue,
-                                (entity1, entity2) -> {
-                                    if (entity1.equals(entity2)) {
-                                        return entity1;
-                                    }
-                                    throw new IllegalStateException(entity1 + " != " + entity2);
-                                },
-                                HashMap::new));
+        Map<Id, Entity> map = Parser.toMap(Arrays.stream(Operator.values()).parallel()
+                .map(Parser::entities)
+                .map(Map::entrySet)
+                .flatMap(Collection::stream));
 
         assertThat(map).isNotEmpty();
 
@@ -47,4 +34,5 @@ class ParserTest {
                         .filter(id -> id.getType().equals(ScheduledStopPoint.class.getSimpleName()))
                         .count());
     }
+
 }
