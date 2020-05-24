@@ -22,9 +22,9 @@ public final class EntityParsers {
                 Sublist.projections, linkSequenceProjectionParser());
     }
 
-    static ScheduledStopPoint scheduledStopPoint(EntityParser.EntityMaterials entityMaterials) {
-        return new ScheduledStopPoint(entityMaterials.getId(),
-                entityMaterials.getContents().get(Field.Name));
+    static ScheduledStopPoint scheduledStopPoint(EntityData data) {
+        return new ScheduledStopPoint(data.getId(),
+                data.getContent(Field.Name));
     }
 
     static EntityParser<RoutePoint> routePointParser() {
@@ -46,27 +46,27 @@ public final class EntityParsers {
     }
 
     @SuppressWarnings("unchecked")
-    private static RoutePoint routePoint(EntityParser.EntityMaterials entityMaterials) {
-        return new RoutePoint(entityMaterials.getId(),
-                (Collection<PointProjection>) entityMaterials.getLists().get(Sublist.projections));
+    private static RoutePoint routePoint(EntityData data) {
+        return new RoutePoint(data.getId(),
+                (Collection<PointProjection>) data.getSublist(Sublist.projections));
     }
 
-    private static PointProjection pointProjection(EntityParser.EntityMaterials entityMaterials) {
-        return new PointProjection(entityMaterials.getId(),
-                entityMaterials.getIds().get(Field.ProjectedPointRef));
+    private static PointProjection pointProjection(EntityData data) {
+        return new PointProjection(data.getId(),
+                data.getId(Field.ProjectedPointRef));
     }
 
-    private static LinkSequenceProjection linkSequenceProjection(EntityParser.EntityMaterials entityMaterials) {
-        return new LinkSequenceProjection(entityMaterials.getId(),
-                GPSCoordinate.sequence(entityMaterials.getContents().get(Field.posList)));
+    private static LinkSequenceProjection linkSequenceProjection(EntityData data) {
+        return new LinkSequenceProjection(data.getId(),
+                GPSCoordinate.sequence(data.getContent(Field.posList)));
     }
 
     @SuppressWarnings("unchecked")
-    private static ServiceLink serviceLink(EntityParser.EntityMaterials entityMaterials) {
-        return new ServiceLink(entityMaterials.getId(),
-                entityMaterials.getIds().get(Field.FromPointRef),
-                entityMaterials.getIds().get(Field.ToPointRef),
-                entityMaterials.getContents().get(Field.Distance),
-                (Collection<LinkSequenceProjection>) entityMaterials.getLists().get(Sublist.projections));
+    private static ServiceLink serviceLink(EntityData data) {
+        return new ServiceLink(data.getId(),
+                data.getId(Field.FromPointRef),
+                data.getId(Field.ToPointRef),
+                data.getContent(Field.Distance),
+                (Collection<LinkSequenceProjection>) data.getSublist(Sublist.projections));
     }
 }

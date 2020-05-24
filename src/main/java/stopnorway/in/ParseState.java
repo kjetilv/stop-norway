@@ -140,16 +140,15 @@ class ParseState<E extends Entity> {
 
     private E create() {
         try {
-            return entityMaker.entity(
-                    new EntityParser.EntityMaterials(
-                            activeId,
-                            fieldIds == null ? Collections.emptyMap() : Map.copyOf(fieldIds),
-                            this.fieldContents == null
-                                    ? Collections.emptyMap()
-                                    : toStrings(this.fieldContents),
-                            sublists == null
-                                    ? Collections.emptyMap()
-                                    : toMap(this.sublists)));
+            return entityMaker.entity(new EntityData(
+                    activeId,
+                    fieldIds == null ? Collections.emptyMap() : fieldIds,
+                    this.fieldContents == null
+                            ? Collections.emptyMap()
+                            : toStrings(this.fieldContents),
+                    sublists == null
+                            ? Collections.emptyMap()
+                            : toMap(this.sublists)));
         } catch (Exception e) {
             throw new IllegalStateException(this + " could not build", e);
         }
