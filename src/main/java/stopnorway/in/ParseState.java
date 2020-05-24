@@ -140,18 +140,23 @@ class ParseState<E extends Entity> {
 
     private E create() {
         try {
-            return entityMaker.entity(new EntityData(
-                    activeId,
-                    fieldIds == null ? Collections.emptyMap() : fieldIds,
-                    this.fieldContents == null
-                            ? Collections.emptyMap()
-                            : toStrings(this.fieldContents),
-                    sublists == null
-                            ? Collections.emptyMap()
-                            : toMap(this.sublists)));
+            return entityMaker.entity(compileData());
         } catch (Exception e) {
             throw new IllegalStateException(this + " could not build", e);
         }
+    }
+
+    @NotNull
+    private EntityData compileData() {
+        return new EntityData(
+                activeId,
+                fieldIds == null ? Collections.emptyMap() : fieldIds,
+                fieldContents == null
+                        ? Collections.emptyMap()
+                        : toStrings(this.fieldContents),
+                sublists == null
+                        ? Collections.emptyMap()
+                        : toMap(this.sublists));
     }
 
     private Map<Sublist, Collection<?>> toMap(Map<Sublist, Collection<Collection<?>>> sublists) {
@@ -172,9 +177,9 @@ class ParseState<E extends Entity> {
     private static Map<Field, String> toStrings(Map<Field, StringBuilder> fieldStrings) {
         return fieldStrings.entrySet().stream()
                 .map(e ->
-                        new AbstractMap.SimpleEntry<>(e.getKey(), String.valueOf(e.getValue())))
-                .filter(e ->
-                        !e.getValue().isBlank())
+                        new AbstractMap.SimpleEntry<>(
+                                e.getKey(),
+                                String.valueOf(e.getValue())))
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         Map.Entry::getValue));
