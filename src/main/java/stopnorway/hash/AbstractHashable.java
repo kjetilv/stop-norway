@@ -57,6 +57,31 @@ public abstract class AbstractHashable
 
     private final AtomicReference<String> toString = new AtomicReference<>();
 
+    @Override
+    public final UUID getUuid() {
+
+        return hash.updateAndGet(v -> v == null ? uuid() : v);
+    }
+
+    @Override
+    public final int hashCode() {
+
+        return getUuid().hashCode();
+    }
+
+    @Override
+    public final boolean equals(Object obj) {
+
+        return obj == this || obj != null && obj.getClass() == getClass()
+                && ((Hashed) obj).getUuid().equals(getUuid());
+    }
+
+    @Override
+    public final String toString() {
+
+        return toString.updateAndGet(v -> v == null ? build() : v);
+    }
+
     protected static void hash(Consumer<byte[]> hash, byte[]... bytes) {
 
         for (byte[] bite : bytes) {
@@ -74,13 +99,22 @@ public abstract class AbstractHashable
         hashStrings(hash, Arrays.stream(enums).map(e -> e.getClass() + "." + e.name()));
     }
 
-    protected static void hash(Consumer<byte[]> hash, Integer... values) {
+    protected static void hash(Consumer<byte[]> hash, int... values) {
 
         ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES * values.length);
         for (Integer value : values) {
             if (value != null) {
                 buffer.putInt(value);
             }
+        }
+        hash.accept(buffer.array());
+    }
+
+    protected static void hash(Consumer<byte[]> hash, float... values) {
+
+        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES * values.length);
+        for (float value : values) {
+            buffer.putFloat(value);
         }
         hash.accept(buffer.array());
     }
@@ -97,33 +131,6 @@ public abstract class AbstractHashable
                 hashable.hashTo(h);
             }
         }
-    }
-
-    private static MessageDigest md5() {
-
-        try {
-            return MessageDigest.getInstance(HASH);
-        } catch (Exception e) {
-            throw new IllegalStateException("Expected " + HASH + " implementation", e);
-        }
-    }
-
-    private static void hashStrings(Consumer<byte[]> hash, Collection<String> strings) {
-
-        hashStrings(hash, strings.stream());
-    }
-
-    private static void hashStrings(Consumer<byte[]> hash, Stream<String> stream) {
-        stream
-                .filter(Objects::nonNull)
-                .forEach(s ->
-                        hash.accept(s.getBytes(StandardCharsets.UTF_8)));
-    }
-
-    @Override
-    public final UUID getUuid() {
-
-        return hash.updateAndGet(v -> v == null ? uuid() : v);
     }
 
     protected abstract StringBuilder withStringBody(StringBuilder sb);
@@ -161,22 +168,24 @@ public abstract class AbstractHashable
         return sb2;
     }
 
-    @Override
-    public final int hashCode() {
+    private static MessageDigest md5() {
 
-        return getUuid().hashCode();
+        try {
+            return MessageDigest.getInstance(HASH);
+        } catch (Exception e) {
+            throw new IllegalStateException("Expected " + HASH + " implementation", e);
+        }
     }
 
-    @Override
-    public final boolean equals(Object obj) {
+    private static void hashStrings(Consumer<byte[]> hash, Collection<String> strings) {
 
-        return obj == this || obj != null && obj.getClass() == getClass()
-                && ((Hashed) obj).getUuid().equals(getUuid());
+        hashStrings(hash, strings.stream());
     }
 
-    @Override
-    public final String toString() {
-
-        return toString.updateAndGet(v -> v == null ? build() : v);
+    private static void hashStrings(Consumer<byte[]> hash, Stream<String> stream) {
+        stream
+                .filter(Objects::nonNull)
+                .forEach(s ->
+                        hash.accept(s.getBytes(StandardCharsets.UTF_8)));
     }
 }

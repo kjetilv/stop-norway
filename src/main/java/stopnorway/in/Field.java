@@ -8,7 +8,9 @@ public enum Field implements EnumMatch<Field> {
 
     ToPointRef,
 
-    Distance;
+    Distance,
+
+    posList;
 
     private final FieldType fieldType;
 

@@ -14,6 +14,7 @@ dependencies {
     implementation(kotlin("stdlib-jdk8"))
     implementation(kotlin("stdlib-js"))
 
+    implementation("ch.qos.logback:logback-classic:1.2.3")
     implementation("org.codehaus.woodstox:stax2-api:4.2.1")
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.6.2")

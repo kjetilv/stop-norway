@@ -10,7 +10,7 @@ public interface EnumMatch<E extends EnumMatch<E>> {
 
     String name();
 
-    default  <T> T get(Map<? extends EnumMatch<E>, ?> objectMap) {
+    default <T> T get(Map<? extends EnumMatch<E>, ?> objectMap) {
         return this.<T>getOpt(objectMap)
                 .orElseThrow(() ->
                         new IllegalStateException(this + " not found in " + objectMap));
