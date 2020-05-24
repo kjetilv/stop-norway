@@ -7,7 +7,6 @@ import stopnorway.database.Id;
 import stopnorway.database.Operator;
 
 import javax.xml.stream.XMLEventReader;
-import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.XMLEvent;
 import java.time.Duration;
@@ -20,11 +19,19 @@ import java.util.stream.Stream;
 public final class Parser {
 
     private static final Logger log = LoggerFactory.getLogger(Parser.class);
+    private final boolean logging;
     private final boolean parallel;
     private final Supplier<Collection<EntityParser<? extends Entity>>> parsersSupplier;
 
     public Parser(boolean parallel, Supplier<Collection<EntityParser<? extends Entity>>> parsersSupplier) {
+        this(false, parallel, parsersSupplier);
+    }
 
+    public Parser(
+            boolean quiet,
+            boolean parallel,
+            Supplier<Collection<EntityParser<? extends Entity>>> parsersSupplier) {
+        this.logging = !quiet;
         this.parallel = parallel;
         this.parsersSupplier = parsersSupplier;
     }
@@ -47,27 +54,32 @@ public final class Parser {
     }
 
     public Map<Id, Entity> entities(Collection<Operator> operators) {
-        log.info("Processing {} operators in {}: {}",
-                operators.size(),
-                parallel ? "parallel" : "sequence",
-                operators.stream().map(Enum::name).collect(Collectors.joining(", ")));
-        Stream<? extends Map.Entry<Id, ? extends Entity>> entries =
-                (parallel ? operators.stream() : operators.parallelStream())
-                        .map(OperatorSource::create)
-                        .flatMap(this::process);
+        if (logging) {
+            log.info("Processing {} operators in {}: {}",
+                    operators.size(),
+                    parallel ? "parallel" : "sequence",
+                    operators.stream().map(Enum::name).collect(Collectors.joining(", ")));
+        }
+        Stream<OperatorSource> operatorSourceStream = operators.stream().map(OperatorSource::create);
+        Stream<Map.Entry<Id, ? extends Entity>> entries =
+                (parallel ? operatorSourceStream.parallel() : operatorSourceStream).flatMap(this::process);
         Instant totalStartTime = Instant.now();
         try {
             return collect(entries);
         } finally {
-            Duration time = Duration.between(totalStartTime, Instant.now());
-            long totalSize =
-                    operators.stream().map(OperatorSource::create).mapToLong(OperatorSource::getSize).sum();
-            log.info("Processed {} operators in {}, total {} bytes", operators.size(), time, totalSize);
+            if (logging) {
+                Duration time = Duration.between(totalStartTime, Instant.now());
+                long totalSize =
+                        operators.stream().map(OperatorSource::create).mapToLong(OperatorSource::getSize).sum();
+                log.info("Processed {} operators in {}, total {} bytes", operators.size(), time, totalSize);
+            }
         }
     }
 
     private Stream<? extends Map.Entry<Id, ? extends Entity>> process(OperatorSource operatorSource) {
-        log.info("Processing {}...", operatorSource);
+        if (logging) {
+            log.info("Processing {}...", operatorSource);
+        }
         Instant startTime = Instant.now();
         Collection<EntityParser<? extends Entity>> parsers = this.parsersSupplier.get();
         try {
@@ -77,10 +89,12 @@ public final class Parser {
             throw new IllegalStateException
                     (this + " failed to update " + parsers.size() + " parsers for " + operatorSource, e);
         } finally {
-            logResults(
-                    operatorSource,
-                    parsers,
-                    Duration.between(startTime, Instant.now()));
+            if (logging) {
+                logResults(
+                        operatorSource,
+                        parsers,
+                        Duration.between(startTime, Instant.now()));
+            }
         }
     }
 
@@ -91,8 +105,8 @@ public final class Parser {
     ) {
         long entities = parsers.stream().mapToLong(parser -> parser.get().size()).sum();
         long nanos = duration.toNanos();
-        int byteHz = nanos > 0 ? (int)(1_000_000_000L * operatorSource.getSize() / nanos) : -1;
-        int entityHz = nanos >0 ? (int)(1_000_000_000L * entities / nanos) : -1;
+        int byteHz = nanos > 0 ? (int) (1_000_000_000L * operatorSource.getSize() / nanos) : -1;
+        int entityHz = nanos > 0 ? (int) (1_000_000_000L * entities / nanos) : -1;
 
         log.info("Processed {} in {}: {} entities from {} bytes, {} bytes/s, {} entities/s",
                 operatorSource,

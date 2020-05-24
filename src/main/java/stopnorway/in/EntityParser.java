@@ -123,7 +123,11 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
     public <S extends Entity> EntityParser<E> withSublist(Sublist sublist, EntityParser<S> entityParser) {
         LinkedHashMap<Sublist, EntityParser<?>> newSublists = new LinkedHashMap<>(subParsers);
         newSublists.put(sublist, entityParser);
-        return new EntityParser<>(type, state, Arrays.asList(fields), newSublists);
+        return new EntityParser<>(
+                type,
+                state,
+                fields == null ? Collections.emptyList() : Arrays.asList(fields),
+                newSublists);
     }
 
     @Override
@@ -169,7 +173,7 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
         return id(startElement, "ref");
     }
 
-    private static <M extends EnumMatch<M>> M startMatch(M[] matches, StartElement startElement) {
+    private static <M extends EnumMatch> M startMatch(M[] matches, StartElement startElement) {
         if (matches == null) {
             return null;
         }
@@ -181,7 +185,7 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
         return null;
     }
 
-    private static <M extends EnumMatch<M>> M endMatch(M[] matches, EndElement endElement) {
+    private static <M extends EnumMatch> M endMatch(M[] matches, EndElement endElement) {
         if (matches == null) {
             return null;
         }

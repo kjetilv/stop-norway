@@ -7,15 +7,14 @@ import stopnorway.database.Operator;
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.util.zip.GZIPInputStream;
 
 public final class OperatorSource {
 
     private static final XMLInputFactory xmlInputFactory = XMLInputFactory2.newFactory();
+    static final int BUFF = 16 * 1024;
 
     private final Operator operator;
 
@@ -36,7 +35,7 @@ public final class OperatorSource {
     }
 
     public XMLEventReader eventReader() {
-        InputStream file = file();
+        InputStream file = stream();
         return reader(file);
     }
 
@@ -64,15 +63,17 @@ public final class OperatorSource {
     }
 
     @NotNull
-    private InputStream file() {
+    private InputStream stream() {
         try {
-            return new FileInputStream(file);
-        } catch (FileNotFoundException e) {
+            return new GZIPInputStream(
+                    new BufferedInputStream(
+                            new FileInputStream(file), BUFF), BUFF);
+        } catch (Exception e) {
             throw new IllegalArgumentException(file.getAbsolutePath(), e);
         }
     }
 
     private static String sharedData(Operator operator) {
-        return String.format("_%s_shared_data.xml", operator.name());
+        return String.format("_%s_shared_data.xml.gz", operator.name());
     }
 }

@@ -1,12 +1,14 @@
 package stopnorway.in;
 
-public enum Field implements EnumMatch<Field> {
+public enum Field implements EnumMatch {
 
     Name,
 
     FromPointRef,
 
     ToPointRef,
+
+    ProjectedPointRef,
 
     Distance,
 

@@ -5,7 +5,6 @@ import stopnorway.database.Id;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -15,7 +14,7 @@ public final class ServiceLink extends Entity {
 
     private final Id toPoint;
 
-    private final String distance;
+    private final float distance;
 
     private final Collection<LinkSequenceProjection> projections;
 
@@ -23,7 +22,7 @@ public final class ServiceLink extends Entity {
         super(id);
         this.fromPoint = Objects.requireNonNull(fromPoint, "fromPoint");
         this.toPoint = Objects.requireNonNull(toPoint, "toPoint");
-        this.distance = distance;
+        this.distance = distance == null ? .0F : Float.parseFloat(distance);
         this.projections = projections == null || projections.isEmpty() ? Collections.emptyList() : projections;
     }
 
@@ -38,15 +37,7 @@ public final class ServiceLink extends Entity {
         return super.withStringBody(sb).append(fromPoint).append("->").append(toPoint);
     }
 
-    public Id getFromPoint() {
-        return fromPoint;
-    }
-
-    public Id getToPoint() {
-        return toPoint;
-    }
-
-    public String getDistance() {
+    public float getDistance() {
         return distance;
     }
 

@@ -11,7 +11,7 @@ public final class ScheduledStopPoint extends Entity {
 
     public ScheduledStopPoint(Id id, String name) {
         super(id);
-        this.name = name;
+        this.name = name == null || name.isBlank() ? null : name.trim();
     }
 
     @Override

@@ -173,6 +173,8 @@ public class ParseState<E extends Entity> {
         return fieldStrings.entrySet().stream()
                 .map(e ->
                         new AbstractMap.SimpleEntry<>(e.getKey(), String.valueOf(e.getValue())))
+                .filter(e ->
+                        !e.getValue().isBlank())
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         Map.Entry::getValue));

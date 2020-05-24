@@ -1,5 +1,7 @@
 package stopnorway.data;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.*;
 
 public final class GPSCoordinate {
@@ -22,19 +24,7 @@ public final class GPSCoordinate {
         if (str == null || str.isBlank()) {
             return Collections.emptyList();
         }
-        String[] split = Arrays.stream(str.split("\\s+"))
-                .filter(Objects::nonNull)
-                .filter(s -> !s.isBlank())
-                .toArray(String[]::new);
-        if (split.length % 2 == 1) {
-            throw new IllegalStateException("Illegal trajectory, " + split.length +
-                    " parts: [" + String.join(", ", split) + "]");
-        }
-        List<GPSCoordinate> gpsCoordinates = new ArrayList<>(split.length / 2);
-        for (int i = 0; i < split.length; ) {
-            gpsCoordinates.add(new GPSCoordinate(split[i++], split[i++]));
-        }
-        return List.copyOf(gpsCoordinates);
+        return parse(str.split("\\s+"));
     }
 
     public float getLat() {
@@ -55,5 +45,14 @@ public final class GPSCoordinate {
     @Override
     public int hashCode() {
         return Objects.hash(lat, lon);
+    }
+
+    @NotNull
+    private static List<GPSCoordinate> parse(String[] split) {
+        List<GPSCoordinate> gpsCoordinates = new ArrayList<>(split.length / 2);
+        for (int i = 0; i < split.length; ) {
+            gpsCoordinates.add(new GPSCoordinate(split[i++], split[i++]));
+        }
+        return Collections.unmodifiableList(gpsCoordinates);
     }
 }

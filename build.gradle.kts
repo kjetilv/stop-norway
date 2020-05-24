@@ -22,7 +22,7 @@ dependencies {
 }
 
 configure<JavaPluginConvention> {
-    sourceCompatibility = JavaVersion.VERSION_14
+    sourceCompatibility = JavaVersion.VERSION_11
 }
 
 java {

@@ -29,4 +29,8 @@ public final class LinkSequenceProjection extends Entity {
     public Collection<GPSCoordinate> getTrajectory() {
         return trajectory;
     }
+
+    public long getTrajectoryLength() {
+        return trajectory.size();
+    }
 }
