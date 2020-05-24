@@ -63,6 +63,9 @@ class ParserTest {
 
         assertThat(entities).isNotEmpty();
 
+        System.out.println("Entities parsed:");
+        System.out.println("  " + entities.size());
+
         System.out.println("Scheduled stop points: ");
         System.out.println("  " +
                 entities.keySet().stream()

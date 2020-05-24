@@ -8,7 +8,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class ParseState<E extends Entity> {
+class ParseState<E extends Entity> {
 
     private final Map<Id, E> parsedEntities = new LinkedHashMap<>();
 
@@ -26,7 +26,7 @@ public class ParseState<E extends Entity> {
 
     private Map<Sublist, Collection<Collection<?>>> sublists;
 
-    public ParseState(EntityParser.EntityMaker<E> entityMaker) {
+    ParseState(EntityParser.EntityMaker<E> entityMaker) {
 
         this.entityMaker = entityMaker;
     }
@@ -141,14 +141,15 @@ public class ParseState<E extends Entity> {
     private E create() {
         try {
             return entityMaker.entity(
-                    activeId,
-                    fieldIds == null ? Collections.emptyMap() : Map.copyOf(fieldIds),
-                    this.fieldContents == null
-                            ? Collections.emptyMap()
-                            : toStrings(this.fieldContents),
-                    sublists == null
-                            ? Collections.emptyMap()
-                            : toMap(this.sublists));
+                    new EntityParser.EntityMaterials(
+                            activeId,
+                            fieldIds == null ? Collections.emptyMap() : Map.copyOf(fieldIds),
+                            this.fieldContents == null
+                                    ? Collections.emptyMap()
+                                    : toStrings(this.fieldContents),
+                            sublists == null
+                                    ? Collections.emptyMap()
+                                    : toMap(this.sublists)));
         } catch (Exception e) {
             throw new IllegalStateException(this + " could not build", e);
         }

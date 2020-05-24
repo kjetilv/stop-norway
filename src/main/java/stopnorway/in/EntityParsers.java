@@ -1,11 +1,8 @@
 package stopnorway.in;
 
 import stopnorway.data.*;
-import stopnorway.database.Id;
 
 import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 
 public final class EntityParsers {
 
@@ -25,13 +22,9 @@ public final class EntityParsers {
                 Sublist.projections, linkSequenceProjectionParser());
     }
 
-    static ScheduledStopPoint scheduledStopPoint(
-            Id id,
-            Map<Field, Id> ids,
-            Map<Field, String> contents,
-            Map<Sublist, Collection<?>> lists
-    ) {
-        return new ScheduledStopPoint(id, contents.get(Field.Name));
+    static ScheduledStopPoint scheduledStopPoint(EntityParser.EntityMaterials entityMaterials) {
+        return new ScheduledStopPoint(entityMaterials.getId(),
+                entityMaterials.getContents().get(Field.Name));
     }
 
     static EntityParser<RoutePoint> routePointParser() {
@@ -53,47 +46,27 @@ public final class EntityParsers {
     }
 
     @SuppressWarnings("unchecked")
-    private static RoutePoint routePoint(
-            Id id,
-            Map<Field, Id> ids,
-            Map<Field, String> contents,
-            Map<Sublist, Collection<?>> lists
-    ) {
-        return new RoutePoint(id,
-                (Collection<PointProjection>) lists.get(Sublist.projections));
+    private static RoutePoint routePoint(EntityParser.EntityMaterials entityMaterials) {
+        return new RoutePoint(entityMaterials.getId(),
+                (Collection<PointProjection>) entityMaterials.getLists().get(Sublist.projections));
     }
 
-    private static PointProjection pointProjection(
-            Id id,
-            Map<Field, Id> ids,
-            Map<Field, String> contents,
-            Map<Sublist, Collection<?>> lists
-    ) {
-        return new PointProjection(id,
-                ids.get(Field.ProjectedPointRef));
+    private static PointProjection pointProjection(EntityParser.EntityMaterials entityMaterials) {
+        return new PointProjection(entityMaterials.getId(),
+                entityMaterials.getIds().get(Field.ProjectedPointRef));
     }
 
-    private static LinkSequenceProjection linkSequenceProjection(
-            Id id,
-            Map<Field, Id> ids,
-            Map<Field, String> contents,
-            Map<Sublist, Collection<?>> lists
-    ) {
-        return new LinkSequenceProjection(id,
-                GPSCoordinate.sequence(contents.get(Field.posList)));
+    private static LinkSequenceProjection linkSequenceProjection(EntityParser.EntityMaterials entityMaterials) {
+        return new LinkSequenceProjection(entityMaterials.getId(),
+                GPSCoordinate.sequence(entityMaterials.getContents().get(Field.posList)));
     }
 
     @SuppressWarnings("unchecked")
-    private static ServiceLink serviceLink(
-            Id id,
-            Map<Field, Id> ids,
-            Map<Field, String> contents,
-            Map<Sublist, Collection<?>> sublists
-    ) {
-        return new ServiceLink(id,
-                ids.get(Field.FromPointRef),
-                ids.get(Field.ToPointRef),
-                contents.get(Field.Distance),
-                (Collection<LinkSequenceProjection>) sublists.get(Sublist.projections));
+    private static ServiceLink serviceLink(EntityParser.EntityMaterials entityMaterials) {
+        return new ServiceLink(entityMaterials.getId(),
+                entityMaterials.getIds().get(Field.FromPointRef),
+                entityMaterials.getIds().get(Field.ToPointRef),
+                entityMaterials.getContents().get(Field.Distance),
+                (Collection<LinkSequenceProjection>) entityMaterials.getLists().get(Sublist.projections));
     }
 }
