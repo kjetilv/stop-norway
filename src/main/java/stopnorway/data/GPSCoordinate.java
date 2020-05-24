@@ -2,7 +2,7 @@ package stopnorway.data;
 
 import java.util.*;
 
-public class GPSCoordinate {
+public final class GPSCoordinate {
 
     private final float lat;
     private final float lon;
@@ -43,5 +43,17 @@ public class GPSCoordinate {
 
     public float getLon() {
         return lon;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return this == o || o instanceof GPSCoordinate &&
+                Float.compare(((GPSCoordinate) o).lat, lat) == 0 &&
+                Float.compare(((GPSCoordinate) o).lon, lon) == 0;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(lat, lon);
     }
 }

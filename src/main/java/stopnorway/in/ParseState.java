@@ -24,7 +24,7 @@ public class ParseState<E extends Entity> {
 
     private Map<Field, StringBuilder> fieldContents;
 
-    private Map<Sublist, Collection<?>> sublists;
+    private Map<Sublist, Collection<Collection<?>>> sublists;
 
     public ParseState(EntityParser.EntityMaker<E> entityMaker) {
 
@@ -65,16 +65,14 @@ public class ParseState<E extends Entity> {
         activeSublist = sublist;
     }
 
-    @SuppressWarnings("unchecked")
-    <S> void stopBuildingList(Sublist sublist, Collection<S> elements) {
+    <S> void completeList(Sublist sublist, Collection<S> elements) {
         if (this.activeSublist == sublist) {
             if (sublists == null) {
                 sublists = new EnumMap<>(Sublist.class);
             }
-            Map<Sublist, Collection<?>> sublistCollectionMap = sublists;
-            Collection<S> objects = (Collection<S>)
-                    sublistCollectionMap.computeIfAbsent(activeSublist, __ -> new ArrayList<>());
-            objects.addAll(elements);
+            sublists.computeIfAbsent(
+                    activeSublist,
+                    __ -> new ArrayList<>()).add(elements);
             this.activeSublist = null;
         } else {
             throw new IllegalStateException(this + " is not bulding " + sublist);
@@ -148,10 +146,26 @@ public class ParseState<E extends Entity> {
                     this.fieldContents == null
                             ? Collections.emptyMap()
                             : toStrings(this.fieldContents),
-                    sublists == null ? Collections.emptyMap() : Map.copyOf(sublists));
+                    sublists == null
+                            ? Collections.emptyMap()
+                            : toMap(this.sublists));
         } catch (Exception e) {
             throw new IllegalStateException(this + " could not build", e);
         }
+    }
+
+    private Map<Sublist, Collection<?>> toMap(Map<Sublist, Collection<Collection<?>>> sublists) {
+        return sublists.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, this::unpack));
+    }
+
+    private Collection<?> unpack(Map.Entry<Sublist, Collection<Collection<?>>> e) {
+        if (e.getValue().size() > 1) {
+            return e.getValue().stream()
+                    .flatMap(Collection::stream)
+                    .collect(Collectors.toList());
+        }
+        return e.getValue().iterator().next();
     }
 
     @NotNull

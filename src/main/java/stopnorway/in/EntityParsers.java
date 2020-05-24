@@ -50,19 +50,19 @@ public final class EntityParsers {
             Map<Sublist, Collection<?>> lists
     ) {
         return new LinkSequenceProjection(id,
-                GPSCoordinate.sequence(Field.posList.get(ids, "")));
+                GPSCoordinate.sequence(Field.posList.get(contents, "")));
     }
 
     private static ServiceLink serviceLink(
             Id id,
             Map<Field, Id> ids,
             Map<Field, String> contents,
-            Map<Sublist, Collection<?>> lists
+            Map<Sublist, Collection<?>> sublists
     ) {
         return new ServiceLink(id,
                 Field.FromPointRef.get(ids),
                 Field.ToPointRef.get(ids),
                 Field.Distance.get(contents, null),
-                Sublist.projections.get(lists, null));
+                Sublist.projections.get(sublists, null));
     }
 }

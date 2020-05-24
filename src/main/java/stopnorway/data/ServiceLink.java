@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-public class ServiceLink extends Entity {
+public final class ServiceLink extends Entity {
 
     private final Id fromPoint;
 
@@ -24,9 +24,7 @@ public class ServiceLink extends Entity {
         this.fromPoint = Objects.requireNonNull(fromPoint, "fromPoint");
         this.toPoint = Objects.requireNonNull(toPoint, "toPoint");
         this.distance = distance;
-        this.projections = projections == null || projections.isEmpty()
-                ? Collections.emptyList()
-                : List.copyOf(projections);
+        this.projections = projections == null || projections.isEmpty() ? Collections.emptyList() : projections;
     }
 
     @Override

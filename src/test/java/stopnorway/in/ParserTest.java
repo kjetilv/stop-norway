@@ -22,20 +22,35 @@ class ParserTest {
                         EntityParsers.scheduledStopPointParser()));
 
         Map<Id, Entity> entities = parser.entities(Operator.values());
-
         assertThat(entities).isNotEmpty();
 
-        System.out.println("Service links: " +
-                entities.keySet().stream()
+        Map<Id, Entity> entities2 = parser.entities(Operator.values());
+
+        System.out.println("Service links: ");
+        System.out.println("  " +
+                entities2.keySet().stream()
                         .filter(id ->
                                 id.getType().equals(ServiceLink.class.getSimpleName()))
                         .count());
 
-        System.out.println("Scheduled stop points: " +
-                entities.keySet().stream()
+        System.out.println("Scheduled stop points: ");
+        System.out.println("  " +
+                entities2.keySet().stream()
                         .filter(id ->
                                 id.getType().equals(ScheduledStopPoint.class.getSimpleName()))
                         .count());
+
+        System.out.println("GPS coordinates: ");
+        System.out.println("  " +
+                entities2.values().stream()
+                        .filter(entity ->
+                                entity.getId().getType().equals(ServiceLink.class.getSimpleName()))
+                        .map(ServiceLink.class::cast)
+                        .flatMap(serviceLink ->
+                                serviceLink.getProjections().stream())
+                        .mapToLong(linkSequenceProjection ->
+                                linkSequenceProjection.getTrajectory().size())
+                        .sum());
     }
 
 }

@@ -3,11 +3,12 @@ package stopnorway.data;
 import stopnorway.database.Entity;
 import stopnorway.database.Id;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class LinkSequenceProjection extends Entity {
+public final class LinkSequenceProjection extends Entity {
 
     private final List<GPSCoordinate> trajectory;
 
@@ -23,5 +24,9 @@ public class LinkSequenceProjection extends Entity {
         super.hashTo(h);
         trajectory.forEach(gpsCoordinate ->
                 hash(h, gpsCoordinate.getLat(), gpsCoordinate.getLon()));
+    }
+
+    public Collection<GPSCoordinate> getTrajectory() {
+        return trajectory;
     }
 }

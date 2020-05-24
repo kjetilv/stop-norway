@@ -2,15 +2,10 @@ package stopnorway.database;
 
 import stopnorway.hash.AbstractHashable;
 
-import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-public class Id extends AbstractHashable {
-
-    public static Map<UUID, Id> ids = new ConcurrentHashMap<>();
+public final class Id extends AbstractHashable {
 
     private final int version;
 
@@ -28,6 +23,10 @@ public class Id extends AbstractHashable {
         this.version = version;
     }
 
+    public static Id id(Operator operator, String type, String id, int version) {
+        return new Id(operator, type, id, version);
+    }
+
     public int getVersion() {
         return version;
     }
@@ -42,10 +41,6 @@ public class Id extends AbstractHashable {
 
     public String getId() {
         return id;
-    }
-
-    public static Id intern(Id id) {
-        return ids.computeIfAbsent(id.getUuid(), uuid -> id);
     }
 
     @Override

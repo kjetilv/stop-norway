@@ -1,6 +1,5 @@
 package stopnorway.in;
 
-import org.jetbrains.annotations.NotNull;
 import stopnorway.database.Entity;
 import stopnorway.database.Id;
 import stopnorway.database.Operator;
@@ -24,9 +23,11 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
 
     private final Class<E> type;
 
-    private final Collection<Field> fields;
+    private final Field[] fields;
 
-    private final Map<Sublist, EntityParser<?>> sublists;
+    private final Sublist[] sublists;
+
+    private final Map<Sublist, EntityParser<?>> subParsers;
 
     private final ParseState<E> state;
 
@@ -42,13 +43,18 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
             Class<E> type,
             ParseState<E> state,
             Collection<Field> fields,
-            Map<Sublist, EntityParser<?>> sublists
+            Map<Sublist, EntityParser<?>> subParsers
     ) {
         this.type = type;
-        this.fields = fields;
-        this.sublists = sublists == null || sublists.isEmpty()
+        this.fields = fields == null || fields.isEmpty()
+                ? null
+                : fields.toArray(new Field[0]);
+        this.sublists = subParsers == null || subParsers.isEmpty()
+                ? null
+                : subParsers.keySet().toArray(Sublist[]::new);
+        this.subParsers = subParsers == null || subParsers.isEmpty()
                 ? Collections.emptyMap()
-                : Map.copyOf(sublists);
+                : Map.copyOf(subParsers);
         this.state = state;
     }
 
@@ -57,7 +63,7 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
         try {
             int eventType = event.getEventType();
             if (state.isBuildingList()) {
-                EntityParser<?> entityParser = sublists.get(state.getActiveSublist());
+                EntityParser<?> entityParser = subParsers.get(state.getActiveSublist());
                 if (entityParser != null) {
                     entityParser.accept(event);
                 }
@@ -68,16 +74,16 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
                     state.completeEntityBuild();
                     return;
                 }
-                endMatch(this.fields, endElement)
-                        .ifPresent(state::stopLookingForField);
-                endMatch(this.sublists.keySet(), endElement)
-                        .filter(sublist ->
-                                sublist == state.getActiveSublist())
-                        .ifPresent(sublist -> {
-                            EntityParser<?> listParser = sublists.get(sublist);
-                            Map<Id, ?> idMap = listParser.get();
-                            state.stopBuildingList(sublist, idMap.values());
-                        });
+                Field matchingField = endMatch(this.fields, endElement);
+                if (matchingField != null) {
+                    state.stopLookingForField(matchingField);
+                }
+                Sublist matchingSublist = endMatch(this.sublists, endElement);
+                if (matchingSublist != null && matchingSublist == state.getActiveSublist()) {
+                    EntityParser<?> listParser = subParsers.get(matchingSublist);
+                    Map<Id, ?> idMap = listParser.get();
+                    state.completeList(matchingSublist, idMap.values());
+                }
                 return;
             }
             if (eventType == START_ELEMENT) {
@@ -87,23 +93,22 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
                     return;
                 }
                 if (state.isBuildingEntity()) {
-                    startMatch(this.fields, startElement)
-                            .ifPresent(field -> {
-                                state.startLookingForField(field);
-                                if (state.isLookingForField(FieldType.Ref)) {
-                                    state.setFieldId(ref(event));
-                                }
-                            });
-                    startMatch(this.sublists.keySet(), startElement)
-                            .ifPresent(state::startBuildingList);
+                    Field matchingField = startMatch(this.fields, startElement);
+                    if (matchingField != null) {
+                        state.startLookingForField(matchingField);
+                        if (state.isLookingForField(FieldType.Ref)) {
+                            state.setFieldId(ref(event));
+                        }
+                    }
+                    Sublist matchingSublist = startMatch(sublists, startElement);
+                    if (matchingSublist != null) {
+                        state.startBuildingList(matchingSublist);
+                    }
                 }
                 return;
             }
             if (eventType == XMLStreamConstants.CHARACTERS) {
                 String contents = contents(event);
-                if (contents.isEmpty()) {
-                    return;
-                }
                 if (state.isLookingForField(FieldType.Content)) {
                     state.setFieldContents(contents);
                 }
@@ -116,14 +121,14 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
     }
 
     public <S extends Entity> EntityParser<E> withSublist(Sublist sublist, EntityParser<S> entityParser) {
-        LinkedHashMap<Sublist, EntityParser<?>> newSublists = new LinkedHashMap<>(sublists);
+        LinkedHashMap<Sublist, EntityParser<?>> newSublists = new LinkedHashMap<>(subParsers);
         newSublists.put(sublist, entityParser);
-        return new EntityParser<>(type, state, fields, newSublists);
+        return new EntityParser<>(type, state, Arrays.asList(fields), newSublists);
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[" + type.getSimpleName() + "/" + fields + "]";
+        return getClass().getSimpleName() + "[" + type.getSimpleName() + "/" + Arrays.toString(fields) + "]";
     }
 
     @Override
@@ -132,8 +137,7 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
     }
 
     private String contents(XMLEvent event) {
-        String data = event.asCharacters().getData();
-        return data == null || data.isBlank() ? "" : data.trim();
+        return event.asCharacters().getData();
     }
 
     private Id ref(XMLEvent event) {
@@ -154,37 +158,39 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
 
     private Id id(StartElement startElement, String attr) {
         String[] idParts = get(startElement, attr).split(":");
-        return Id.intern(new Id(
+        return Id.id(
                 Operator.valueOf(idParts[0]),
                 idParts[1],
                 idParts[2],
-                get(Integer::parseInt, startElement, "version")));
+                get(Integer::parseInt, startElement, "version"));
     }
 
     private Id ref(StartElement startElement) {
         return id(startElement, "ref");
     }
 
-    @NotNull
-    private static <M extends EnumMatch<M>> Optional<M> startMatch(
-            Collection<M> matches,
-            StartElement startElement
-    ) {
-        return matches.stream()
-                .filter(match ->
-                        match.startMatch(startElement))
-                .findFirst();
+    private static <M extends EnumMatch<M>> M startMatch(M[] matches, StartElement startElement) {
+        if (matches == null) {
+            return null;
+        }
+        for (M match : matches) {
+            if (match.startMatch(startElement)) {
+                return match;
+            }
+        }
+        return null;
     }
 
-    @NotNull
-    private static <M extends EnumMatch<M>> Optional<M> endMatch(
-            Collection<M> matches,
-            EndElement endElement
-    ) {
-        return matches.stream()
-                .filter(match ->
-                        match.endMatch(endElement))
-                .findFirst();
+    private static <M extends EnumMatch<M>> M endMatch(M[] matches, EndElement endElement) {
+        if (matches == null) {
+            return null;
+        }
+        for (M match : matches) {
+            if (match.endMatch(endElement)) {
+                return match;
+            }
+        }
+        return null;
     }
 
     private static String element(StartElement startElement) {
@@ -211,31 +217,4 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
 
         E entity(Id id, Map<Field, Id> ids, Map<Field, String> contents, Map<Sublist, Collection<?>> lists);
     }
-
-    public final static class Stacked {
-
-        private final String name;
-
-        private final int line;
-
-        Stacked(String name, int line) {
-
-            this.name = name;
-            this.line = line;
-        }
-
-        @Override
-        public String toString() {
-            return name + "@" + line;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public int getLine() {
-            return line;
-        }
-    }
-
 }

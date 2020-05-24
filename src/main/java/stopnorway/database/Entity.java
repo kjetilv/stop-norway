@@ -4,7 +4,7 @@ import stopnorway.hash.AbstractHashable;
 
 import java.util.function.Consumer;
 
-public class Entity extends AbstractHashable {
+public abstract class Entity extends AbstractHashable {
 
     private final Id id;
 

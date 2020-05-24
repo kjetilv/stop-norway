@@ -5,7 +5,7 @@ import stopnorway.database.Id;
 
 import java.util.function.Consumer;
 
-public class ScheduledStopPoint extends Entity {
+public final class ScheduledStopPoint extends Entity {
 
     private final String name;
 
