@@ -1,9 +1,10 @@
 package stopnorway.in;
 
+import stopnorway.data.Field;
+import stopnorway.data.Sublist;
 import stopnorway.database.Id;
 
-import java.util.Collection;
-import java.util.Map;
+import java.util.*;
 
 public final class EntityData {
 

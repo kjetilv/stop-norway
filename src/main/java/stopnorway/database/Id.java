@@ -15,6 +15,10 @@ public final class Id extends AbstractHashable {
 
     private final String id;
 
+    public Id(Operator operator, Class<? extends Entity> type, String id, int version) {
+        this(operator, Objects.requireNonNull(type, "type").getSimpleName(), id, version);
+    }
+
     public Id(Operator operator, String type, String id, int version) {
 
         this.operator = Objects.requireNonNull(operator, "operator");

@@ -1,8 +1,15 @@
-package stopnorway.in;
+package stopnorway.data;
+
+import stopnorway.in.EnumMatch;
+import stopnorway.in.FieldType;
 
 public enum Field implements EnumMatch {
 
     Name,
+
+    ShortName,
+
+    TransportMode,
 
     FromPointRef,
 
@@ -10,7 +17,19 @@ public enum Field implements EnumMatch {
 
     ProjectedPointRef,
 
+    RoutePointRef,
+
     Distance,
+
+    DirectionType,
+
+    ScheduledStopPointRef,
+
+    StopPointInJourneyPatternRef,
+
+    JourneyPatternRef,
+
+    DepartureTime,
 
     posList;
 

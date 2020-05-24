@@ -2,13 +2,11 @@ package stopnorway.data;
 
 import stopnorway.database.Entity;
 import stopnorway.database.Id;
-import stopnorway.in.Sublist;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.function.Consumer;
 
-public class RoutePoint extends Entity {
+public final class RoutePoint extends Entity {
 
     private final Collection<PointProjection> projections;
 
@@ -19,6 +17,7 @@ public class RoutePoint extends Entity {
 
     @Override
     public void hashTo(Consumer<byte[]> h) {
+        super.hashTo(h);
         hash(h, projections);
     }
 

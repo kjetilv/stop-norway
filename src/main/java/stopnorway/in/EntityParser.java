@@ -1,5 +1,7 @@
 package stopnorway.in;
 
+import stopnorway.data.Field;
+import stopnorway.data.Sublist;
 import stopnorway.database.Entity;
 import stopnorway.database.Id;
 import stopnorway.database.Operator;
@@ -14,12 +16,12 @@ import javax.xml.stream.events.XMLEvent;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.function.Predicate;
 
 import static javax.xml.stream.XMLStreamConstants.END_ELEMENT;
 import static javax.xml.stream.XMLStreamConstants.START_ELEMENT;
 
-public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>, Supplier<Map<Id, E>> {
+public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>, Predicate<XMLEvent> {
 
     private final Class<E> type;
 
@@ -31,21 +33,30 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
 
     private final ParseState<E> state;
 
+    private final String simpleName;
+
     public EntityParser(Class<E> type, EntityMaker<E> entityMaker, Field... fields) {
         this(type, entityMaker, Arrays.asList(fields));
     }
 
     public EntityParser(Class<E> type, EntityMaker<E> entityMaker, Collection<Field> fields) {
-        this(type, new ParseState<>(entityMaker), fields, null);
+        this(
+                Objects.requireNonNull(type, "type"),
+                type.getSimpleName(),
+                new ParseState<>(entityMaker),
+                fields,
+                null);
     }
 
     private EntityParser(
             Class<E> type,
+            String simpleName,
             ParseState<E> state,
             Collection<Field> fields,
             Map<Sublist, EntityParser<?>> subParsers
     ) {
-        this.type = type;
+        this.type = Objects.requireNonNull(type, "type");
+        this.simpleName = simpleName;
         this.fields = fields == null || fields.isEmpty()
                 ? null
                 : fields.toArray(new Field[0]);
@@ -56,6 +67,12 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
                 ? Collections.emptyMap()
                 : Map.copyOf(subParsers);
         this.state = state;
+    }
+
+    @Override
+    public boolean test(XMLEvent event) {
+        return state.isBuildingEntity() ||
+                event.getEventType() == START_ELEMENT && isEntity(event.asStartElement());
     }
 
     @Override
@@ -81,15 +98,16 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
                 Sublist matchingSublist = endMatch(this.sublists, endElement);
                 if (matchingSublist != null && matchingSublist == state.getActiveSublist()) {
                     EntityParser<?> listParser = subParsers.get(matchingSublist);
-                    Map<Id, ?> idMap = listParser.get();
+                    Map<Id, ?> idMap = listParser.get(true);
                     state.completeList(matchingSublist, idMap.values());
+                    listParser.reset();
                 }
                 return;
             }
             if (eventType == START_ELEMENT) {
                 StartElement startElement = event.asStartElement();
                 if (isEntity(startElement)) {
-                    state.startBuildingEntity(entityId(startElement));
+                    state.startBuildingEntity(id(startElement, "id"));
                     return;
                 }
                 if (state.isBuildingEntity()) {
@@ -97,7 +115,7 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
                     if (matchingField != null) {
                         state.startLookingForField(matchingField);
                         if (state.isLookingForField(FieldType.Ref)) {
-                            state.setFieldId(ref(event));
+                            state.setFieldId(id(startElement, "ref"));
                         }
                     }
                     Sublist matchingSublist = startMatch(sublists, startElement);
@@ -108,8 +126,8 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
                 return;
             }
             if (eventType == XMLStreamConstants.CHARACTERS) {
-                String contents = contents(event);
                 if (state.isLookingForField(FieldType.Content)) {
+                    String contents = event.asCharacters().getData();
                     state.setFieldContents(contents);
                 }
             }
@@ -120,57 +138,49 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
         }
     }
 
+    private void reset() {
+        state.reset();
+    }
+
     public <S extends Entity> EntityParser<E> withSublist(Sublist sublist, EntityParser<S> entityParser) {
         LinkedHashMap<Sublist, EntityParser<?>> newSublists = new LinkedHashMap<>(subParsers);
         newSublists.put(sublist, entityParser);
         return new EntityParser<>(
                 type,
+                simpleName,
                 state,
-                fields == null ? Collections.emptyList() : Arrays.asList(fields),
+                fields == null ? null : Arrays.asList(fields),
                 newSublists);
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[" + type.getSimpleName() + "/" + Arrays.toString(fields) + "]";
+        return getClass().getSimpleName() + "[" + simpleName + "/" + Arrays.toString(fields) + "]";
     }
 
-    @Override
     public Map<Id, E> get() {
-        return state.get();
+        return get(false);
     }
 
-    private String contents(XMLEvent event) {
-        return event.asCharacters().getData();
-    }
-
-    private Id ref(XMLEvent event) {
-        return ref(event.asStartElement());
+    public Map<Id, E> get(boolean reset) {
+        return state.get(reset);
     }
 
     private boolean isEntity(StartElement startElement) {
-        return element(startElement).equalsIgnoreCase(type.getSimpleName());
-    }
-
-    private Id entityId(StartElement startElement) {
-        return id(startElement, "id");
+        return startElement.getName().getLocalPart().equalsIgnoreCase(simpleName);
     }
 
     private boolean isEntity(EndElement endElement) {
-        return element(endElement).equalsIgnoreCase(type.getSimpleName());
+        return endElement.getName().getLocalPart().equalsIgnoreCase(simpleName);
     }
 
-    private Id id(StartElement startElement, String attr) {
+    private static Id id(StartElement startElement, String attr) {
         String[] idParts = get(startElement, attr).split(":");
         return Id.id(
                 Operator.valueOf(idParts[0]),
                 idParts[1],
                 idParts[2],
-                version(Integer::parseInt, startElement));
-    }
-
-    private Id ref(StartElement startElement) {
-        return id(startElement, "ref");
+                version(Integer::parseInt, startElement, 1));
     }
 
     private static <M extends EnumMatch> M startMatch(M[] matches, StartElement startElement) {
@@ -197,14 +207,6 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
         return null;
     }
 
-    private static String element(StartElement startElement) {
-        return startElement.getName().getLocalPart();
-    }
-
-    private static String element(EndElement endElement) {
-        return endElement.getName().getLocalPart();
-    }
-
     private static String get(StartElement startElement, String attr) {
         Attribute attributeByName = startElement.getAttributeByName(QName.valueOf(attr));
         if (attributeByName == null) {
@@ -213,13 +215,12 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
         return attributeByName.getValue();
     }
 
-    private static <T> T version(Function<String, T> function, StartElement startElement) {
-        return function.apply(startElement.getAttributeByName(QName.valueOf("version")).getValue());
+    private static <T> T version(Function<String, T> function, StartElement startElement, T defaultValue) {
+        Attribute attribute = startElement.getAttributeByName(QName.valueOf("version"));
+        if (attribute == null) {
+            return defaultValue;
+        }
+        String version = attribute.getValue();
+        return version == null ? defaultValue : function.apply(version);
     }
-
-    public interface EntityMaker<E extends Entity> {
-
-        E entity(EntityData data);
-    }
-
 }

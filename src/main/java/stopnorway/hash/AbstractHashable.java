@@ -112,9 +112,18 @@ public abstract class AbstractHashable
 
     protected static void hash(Consumer<byte[]> hash, float... values) {
 
-        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES * values.length);
+        ByteBuffer buffer = ByteBuffer.allocate(Float.BYTES * values.length);
         for (float value : values) {
             buffer.putFloat(value);
+        }
+        hash.accept(buffer.array());
+    }
+
+    protected static void hash(Consumer<byte[]> hash, double... values) {
+
+        ByteBuffer buffer = ByteBuffer.allocate(Double.BYTES * values.length);
+        for (double value : values) {
+            buffer.putDouble(value);
         }
         hash.accept(buffer.array());
     }

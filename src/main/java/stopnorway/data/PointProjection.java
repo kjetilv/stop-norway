@@ -2,11 +2,10 @@ package stopnorway.data;
 
 import stopnorway.database.Entity;
 import stopnorway.database.Id;
-import stopnorway.in.Field;
 
 import java.util.function.Consumer;
 
-public class PointProjection extends Entity {
+public final class PointProjection extends Entity {
 
     private final Id projectedPointRef;
 
@@ -17,6 +16,7 @@ public class PointProjection extends Entity {
 
     @Override
     public void hashTo(Consumer<byte[]> h) {
+        super.hashTo(h);
         hash(h, projectedPointRef);
     }
 

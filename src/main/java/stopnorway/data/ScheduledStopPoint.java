@@ -14,6 +14,10 @@ public final class ScheduledStopPoint extends Entity {
         this.name = name == null || name.isBlank() ? null : name.trim();
     }
 
+    public String getName() {
+        return name;
+    }
+
     @Override
     protected StringBuilder withStringBody(StringBuilder sb) {
         return super.withStringBody(sb).append(":").append(name);

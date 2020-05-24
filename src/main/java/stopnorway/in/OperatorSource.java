@@ -1,76 +1,90 @@
 package stopnorway.in;
 
 import org.codehaus.stax2.XMLInputFactory2;
-import org.jetbrains.annotations.NotNull;
 import stopnorway.database.Operator;
 
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
 
 public final class OperatorSource {
 
-    private static final XMLInputFactory xmlInputFactory = XMLInputFactory2.newFactory();
     static final int BUFF = 16 * 1024;
-
+    private static final XMLInputFactory xmlInputFactory = XMLInputFactory2.newFactory();
     private final Operator operator;
 
-    private final File file;
+    private final Collection<File> files;
 
-    public OperatorSource(Operator operator, File file) {
+    public OperatorSource(Operator operator, Collection<File> files) {
         this.operator = operator;
-        this.file = file;
+        this.files = files;
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[" + operator + " @ " + file.getName() + "]";
+        return getClass().getSimpleName() + "[" + operator + "]";
     }
 
     public long getSize() {
-        return file.length();
+        return files.stream().mapToLong(File::length).sum();
     }
 
-    public XMLEventReader eventReader() {
-        InputStream file = stream();
-        return reader(file);
+    public Stream<XMLEventReader> eventReaders() {
+        Stream<InputStream> files = streams();
+        return readers(files);
     }
 
-    @NotNull
     static OperatorSource create(Operator operator) {
-        return new OperatorSource(operator, file(operator));
+        return new OperatorSource(operator, files(operator));
     }
 
-    @NotNull
-    private static File file(Operator operator) {
-        return new File(new File(
+    private Stream<XMLEventReader> readers(Stream<InputStream> files) {
+        return files.map(file -> {
+            try {
+                return xmlInputFactory.createXMLEventReader(file, StandardCharsets.UTF_8.name());
+            } catch (XMLStreamException e) {
+                throw new IllegalStateException("Failed to create factory", e);
+            }
+        });
+    }
+
+    private Stream<InputStream> streams() {
+        return files.stream().map(file -> {
+            try {
+                return new GZIPInputStream(
+                        new BufferedInputStream(
+                                new FileInputStream(file), BUFF), BUFF);
+            } catch (Exception e) {
+                throw new IllegalArgumentException(file.getAbsolutePath(), e);
+            }
+        });
+    }
+
+    private static Collection<File> files(Operator operator) {
+        File documents = new File(
                 new File(
                         new File(System.getProperty("user.home")),
                         "Documents"),
-                "rb_norway-aggregated-netex"),
-                sharedData(operator));
-    }
-
-    private XMLEventReader reader(InputStream file) {
-        try {
-            return xmlInputFactory.createXMLEventReader(file, StandardCharsets.UTF_8.name());
-        } catch (XMLStreamException e) {
-            throw new IllegalStateException("Failed to create factory", e);
-        }
-    }
-
-    @NotNull
-    private InputStream stream() {
-        try {
-            return new GZIPInputStream(
-                    new BufferedInputStream(
-                            new FileInputStream(file), BUFF), BUFF);
-        } catch (Exception e) {
-            throw new IllegalArgumentException(file.getAbsolutePath(), e);
-        }
+                "rb_norway-aggregated-netex");
+        String[] fileNames = documents.list((dir, name) -> name.startsWith(operator.name() + "_"));
+        Stream<File> additional = fileNames == null
+                ? Stream.empty()
+                : Arrays.stream(fileNames).map(fileName -> new File(documents, fileName));
+        return Stream.concat(
+                Stream.of(new File(documents,
+                        sharedData(operator))),
+                additional
+        ).collect(Collectors.toList());
     }
 
     private static String sharedData(Operator operator) {
