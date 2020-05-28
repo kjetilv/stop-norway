@@ -28,7 +28,7 @@ public final class Sample {
         double deltaLon = accuracyMeters / degreeLonMeters;
 
         return new Box(
-                new Point(point.lat() - deltaLat, point.lon() - deltaLon),
-                new Point(point.lat() + deltaLat, point.lon() + deltaLon));
+                new DoublePoint(point.lat() - deltaLat, point.lon() - deltaLon),
+                new DoublePoint(point.lat() + deltaLat, point.lon() + deltaLon));
     }
 }

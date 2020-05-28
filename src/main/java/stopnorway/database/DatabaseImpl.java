@@ -25,6 +25,7 @@ public final class DatabaseImpl extends AbstractHashable implements Database {
 
     private static final String ROUTE_POINT_TYPE = RoutePoint.class.getSimpleName();
 
+    private final Box box;
     private final Map<Id, Entity> entities;
 
     private final Scale scale;
@@ -43,6 +44,11 @@ public final class DatabaseImpl extends AbstractHashable implements Database {
     private final List<ServiceLeg> serviceLegs;
 
     public DatabaseImpl(Map<Id, Entity> entities, Scale scale) {
+        this(null, entities, scale);
+    }
+
+    public DatabaseImpl(Box box, Map<Id, Entity> entities, Scale scale) {
+        this.box = box == null ? NORWAY : box;
         this.entities = Objects.requireNonNull(entities, "entities");
         this.scale = Objects.requireNonNull(scale, "scale");
 
@@ -76,11 +82,20 @@ public final class DatabaseImpl extends AbstractHashable implements Database {
 
         boxedServiceLegs = new ConcurrentHashMap<>();
         serviceLegs.forEach(leg ->
-                leg.scaledBoxes(scale).forEach(box ->
-                        boxedServiceLegs.computeIfAbsent(box, __ -> new HashSet<>())
-                                .add(leg)));
+                leg.scaledBoxes(scale).forEach(scaledBox ->
+                        boxedServiceLegs.computeIfAbsent(
+                                scaledBox,
+                                __ ->
+                                        new HashSet<>()
+                        ).add(leg))
+        );
 
         log.info("{} indexed {} service legs in {} boxes", this, serviceLegs.size(), boxedServiceLegs.size());
+    }
+
+    @Override
+    public Box getBox() {
+        return box;
     }
 
     @Override

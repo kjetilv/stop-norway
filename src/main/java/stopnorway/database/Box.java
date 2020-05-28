@@ -23,8 +23,8 @@ public final class Box implements Serializable {
         this.max = max(min, max);
 
         area = MostlyOnce.get(() ->
-                this.min.distanceTo(new Point(this.max.lat(), this.min.lon())) *
-                        this.min.distanceTo(new Point(this.min.lat(), this.max.lon())));
+                this.min.distanceTo(this.max.lon(this.min)) *
+                        this.min.distanceTo(this.min.lon(this.max)));
     }
 
     public Point max() {
@@ -51,20 +51,20 @@ public final class Box implements Serializable {
 
     public Box combined(Box box) {
         return new Box(
-                new Point(
+                new DoublePoint(
                         Math.min(min().lat(), box.min().lat()),
                         Math.min(min().lon(), box.min().lon())),
-                new Point(
+                new DoublePoint(
                         Math.max(max().lat(), box.max().lat()),
                         Math.max(max().lon(), box.max().lon())));
     }
 
     public double heightMeters() {
-        return min().distanceTo(new Point(max.lat(), min.lon()));
+        return min().distanceTo(max().lon(min()));
     }
 
     public double widthMeters() {
-        return min().distanceTo(new Point(min().lat(), max.lon()));
+        return min().distanceTo(min().lon(max()));
     }
 
     public double areaSqMeters() {
@@ -118,10 +118,8 @@ public final class Box implements Serializable {
                     double lat = min.min().lat() + i * scaleLatSpan;
                     double lon = min.min().lon() + j * scaleLonSpan;
                     return new Box(
-                            new Point(
-                                    lat,
-                                    lon),
-                            new Point(lat + scaleLatSpan, lon + scaleLonSpan));
+                            new DoublePoint(lat, lon),
+                            new DoublePoint(lat + scaleLatSpan, lon + scaleLonSpan));
                 }))
                 .flatMap(s -> s)
                 .map(box -> box.scaledTo(scale))
@@ -131,18 +129,18 @@ public final class Box implements Serializable {
     private boolean containsBox(Box box) {
         return contains(box.min()) ||
                 contains(box.max()) ||
-                contains(new Point(box.max().lat(), box.min().lon())) ||
-                contains(new Point(box.min().lat(), box.max().lon()));
+                contains(box.max().lon(box.min())) ||
+                contains(box.min().lon(box.max()));
     }
 
     private static Point min(Point min, Point max) {
-        return new Point(
+        return new DoublePoint(
                 Math.min(min.lat(), max.lat()),
                 Math.min(min.lon(), max.lon()));
     }
 
     private static Point max(Point min, Point max) {
-        return new Point(
+        return new DoublePoint(
                 Math.max(min.lat(), max.lat()),
                 Math.max(min.lon(), max.lon()));
     }

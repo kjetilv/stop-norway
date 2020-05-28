@@ -13,6 +13,7 @@ import javax.xml.stream.events.XMLEvent;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.ForkJoinPool;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -59,9 +60,34 @@ public final class Parser {
                     parallel ? "parallel" : "sequence",
                     operators.stream().map(Enum::name).collect(Collectors.joining(", ")));
         }
+        return parallel ? processParallel(operators) : processSequential(operators);
+    }
+
+    private Map<Id, Entity> processSequential(Collection<Operator> operators) {
         Stream<OperatorSource> operatorSourceStream = operators.stream().map(OperatorSource::create);
-        Stream<Map.Entry<Id, ? extends Entity>> entries =
-                (parallel ? operatorSourceStream.parallel() : operatorSourceStream).flatMap(this::process);
+        return collect(operators, operatorSourceStream.flatMap(this::process));
+    }
+
+    private Map<Id, Entity> processParallel(Collection<Operator> operators) {
+        Stream<OperatorSource> operatorSourceStream = operators.stream().map(OperatorSource::create);
+        ForkJoinPool fjp = new ForkJoinPool(
+                16,
+                ForkJoinPool.defaultForkJoinWorkerThreadFactory,
+                (t, e) -> log.error("Failed: {}", t, e),
+                false);
+        try {
+            return fjp.submit(() ->
+                    collect(operators,
+                            operatorSourceStream.parallel().flatMap(this::process))).get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted", e);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed", e);
+        }
+    }
+
+    private Map<Id, Entity> collect(Collection<Operator> operators, Stream<? extends Map.Entry<Id, ? extends Entity>> entries) {
         Instant totalStartTime = Instant.now();
         try {
             return collect(entries);
@@ -88,8 +114,9 @@ public final class Parser {
     ) {
         Instant startTime = noisy ? Instant.now() : null;
         try {
-            update(parsers, operatorSource);
-            return collected(parsers);
+            update(operatorSource, parsers);
+            return stream(parsers)
+                    .flatMap(Collection::stream);
         } catch (Exception e) {
             throw new IllegalStateException
                     (this + " failed to update " + parsers.size() + " parsers for " + operatorSource, e);
@@ -122,16 +149,15 @@ public final class Parser {
                 entityHz);
     }
 
-    private void update(
-            Collection<EntityParser<? extends Entity>> parsers,
-            OperatorSource operatorSource) {
+    private void update(OperatorSource operatorSource, Collection<EntityParser<? extends Entity>> parsers) {
         operatorSource.eventReaders().forEach(eventReader -> {
             while (eventReader.hasNext()) {
                 XMLEvent event = event(eventReader);
-                parsers.stream()
-                        .filter(showsInterest(event))
-                        .forEach(parser ->
-                                feed(parser, event, operatorSource));
+                for (EntityParser<? extends Entity> parser : parsers) {
+                    if (parser.test(event)) {
+                        feed(parser, event, operatorSource);
+                    }
+                }
             }
         });
     }
@@ -157,13 +183,11 @@ public final class Parser {
         throw new IllegalStateException(e1 + " != " + e2);
     }
 
-    private static Stream<? extends Map.Entry<Id, ? extends Entity>> collected(
-            Collection<EntityParser<? extends Entity>> parsers
-    ) {
+    @NotNull
+    private static Stream<Set<? extends Map.Entry<Id, ? extends Entity>>> stream(Collection<EntityParser<? extends Entity>> parsers) {
         return parsers.stream()
                 .map(EntityParser::get)
-                .map(Map::entrySet)
-                .flatMap(Collection::stream);
+                .map(Map::entrySet);
     }
 
     private static XMLEvent event(XMLEventReader reader) {

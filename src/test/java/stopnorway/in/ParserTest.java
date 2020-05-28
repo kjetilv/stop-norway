@@ -26,7 +26,7 @@ class ParserTest {
 
     @Test
     void parse_prof_once() {
-        DatabaseImpl entities = run(1, 0);
+        DatabaseImpl entities = run(1, 0, Operator.RUT);
         assertThat(entities).isNotNull();
     }
 
@@ -132,20 +132,23 @@ class ParserTest {
         Database database = new DatabaseImpl(entities, Scale.DEFAULT);
 
         Collection<ServiceLeg> legs = database.getServiceLegs(new Box(
-                new Point(59.9142744, 10.7294832), /* sjakkmatt */
-                new Point(59.9150603, 10.7330858) /* nordvegan*/));
+                new DoublePoint(59.9142744, 10.7294832), /* sjakkmatt */
+                new DoublePoint(59.9150603, 10.7330858) /* nordvegan*/));
 
         assertThat(legs).isNotEmpty();
     }
 
-    private DatabaseImpl run(int times, int warmup) {
+    private DatabaseImpl run(int times, int warmup, Operator... operators) {
         Map<Id, Entity> map = null;
         Duration total = Duration.ZERO;
         for (int i = 0; i < times; i++) {
-            Parser parser = new Parser(times > 1, true, EntityParsers::all);
+            Parser parser = new Parser(
+                    false,
+                    times > 1 && operators.length >  1,
+                    EntityParsers::all);
 
             Instant time = Instant.now();
-            map = parser.entities(Operator.values());
+            map = parser.entities(operators);
             Duration dur = Duration.between(time, Instant.now());
             if (i >= warmup) {
                 total = total.plus(dur);

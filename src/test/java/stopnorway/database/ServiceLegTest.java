@@ -15,9 +15,9 @@ class ServiceLegTest {
         Id toId = new Id(Operator.RUT, ScheduledStopPoint.class, "234", 1);
         LinkSequenceProjection linkSequenceProjection = new LinkSequenceProjection(
                 new Id(Operator.RUT, LinkSequenceProjection.class, "456", 1),
-                new Point(2, 1),
-                new Point(3, 2),
-                new Point(1, 3));
+                new DoublePoint(2, 1),
+                new DoublePoint(3, 2),
+                new DoublePoint(1, 3));
         ServiceLeg serviceLeg = new ServiceLeg(
                 new ScheduledStopPoint(fromId, "Foo"),
                 new ScheduledStopPoint(toId, "Bar"),
@@ -30,12 +30,12 @@ class ServiceLegTest {
 
         assertThat(linkSequenceProjection.getBox()).hasValue(
                 new Box(
-                        new Point(1, 1),
-                        new Point(3, 3)));
+                        new DoublePoint(1, 1),
+                        new DoublePoint(3, 3)));
 
         Box box = new Box(
-                new Point(2, 0),
-                new Point(4, 4));
+                new DoublePoint(2, 0),
+                new DoublePoint(4, 4));
 
         assertThat(linkSequenceProjection.getBox()).hasValueSatisfying(linkSequenceProjectionBox ->
                 assertThat(linkSequenceProjectionBox.overlaps(box)).isTrue());

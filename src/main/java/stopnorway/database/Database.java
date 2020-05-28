@@ -9,6 +9,10 @@ import java.util.stream.Stream;
 
 public interface Database {
 
+    Box NORWAY = new Box(new DoublePoint(57, 4), new DoublePoint(72, 32));
+
+    Box getBox();
+
     ScheduledStopPoint getScheduledStopPoint(Id id);
 
     ServiceLink getServiceLink(Id id);
