@@ -1,9 +1,11 @@
 package stopnorway.database;
 
 import org.junit.jupiter.api.Test;
-import stopnorway.data.LinkSequenceProjection;
-import stopnorway.data.ScheduledStopPoint;
-import stopnorway.data.ServiceLink;
+import stopnorway.entur.LinkSequenceProjection;
+import stopnorway.entur.ScheduledStopPoint;
+import stopnorway.entur.ServiceLink;
+import stopnorway.geo.Box;
+import stopnorway.geo.Points;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -15,9 +17,9 @@ class ServiceLegTest {
         Id toId = new Id(Operator.RUT, ScheduledStopPoint.class, "234", 1);
         LinkSequenceProjection linkSequenceProjection = new LinkSequenceProjection(
                 new Id(Operator.RUT, LinkSequenceProjection.class, "456", 1),
-                new DoublePoint(2, 1),
-                new DoublePoint(3, 2),
-                new DoublePoint(1, 3));
+                Points.point(2, 1),
+                Points.point(3, 2),
+                Points.point(1, 3));
         ServiceLeg serviceLeg = new ServiceLeg(
                 new ScheduledStopPoint(fromId, "Foo"),
                 new ScheduledStopPoint(toId, "Bar"),
@@ -29,13 +31,9 @@ class ServiceLegTest {
                         linkSequenceProjection));
 
         assertThat(linkSequenceProjection.getBox()).hasValue(
-                new Box(
-                        new DoublePoint(1, 1),
-                        new DoublePoint(3, 3)));
+                Points.point(1, 1).box(Points.point(3, 3)));
 
-        Box box = new Box(
-                new DoublePoint(2, 0),
-                new DoublePoint(4, 4));
+        Box box = Points.point(2, 0).box(Points.point(4, 4));
 
         assertThat(linkSequenceProjection.getBox()).hasValueSatisfying(linkSequenceProjectionBox ->
                 assertThat(linkSequenceProjectionBox.overlaps(box)).isTrue());

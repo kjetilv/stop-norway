@@ -1,4 +1,7 @@
-package stopnorway.database;
+package stopnorway.geo;
+
+import stopnorway.geo.Box;
+import stopnorway.geo.Sample;
 
 import java.util.Arrays;
 import java.util.Collection;

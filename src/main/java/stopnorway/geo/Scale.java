@@ -1,4 +1,4 @@
-package stopnorway.database;
+package stopnorway.geo;
 
 import java.io.Serializable;
 import java.util.Objects;

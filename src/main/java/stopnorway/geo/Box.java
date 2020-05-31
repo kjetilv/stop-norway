@@ -1,4 +1,4 @@
-package stopnorway.database;
+package stopnorway.geo;
 
 import stopnorway.util.MostlyOnce;
 
@@ -17,14 +17,15 @@ public final class Box implements Serializable {
 
     private final Supplier<Double> area;
 
-    public Box(Point min, Point max) {
+    private Box(Point min, Point max) {
 
-        this.min = min(min, max);
-        this.max = max(min, max);
+        Point[] points = minMax(min, max);
+        this.min = points[0];
+        this.max = points[1];
 
-        area = MostlyOnce.get(() ->
-                this.min.distanceTo(this.max.lon(this.min)) *
-                        this.min.distanceTo(this.min.lon(this.max)));
+        this.area = MostlyOnce.get(() ->
+                this.min.distanceTo(this.max.lon(this.min)).toMeters() *
+                        this.min.distanceTo(this.min.lon(this.max)).toMeters());
     }
 
     public Point max() {
@@ -44,26 +45,23 @@ public final class Box implements Serializable {
     }
 
     public Box scaledTo(Scale scale) {
-        return new Box(
-                min().downTo(scale),
-                max().upTo(scale));
+        return min().downTo(scale).box(max().upTo(scale));
     }
 
     public Box combined(Box box) {
-        return new Box(
-                new DoublePoint(
-                        Math.min(min().lat(), box.min().lat()),
-                        Math.min(min().lon(), box.min().lon())),
-                new DoublePoint(
-                        Math.max(max().lat(), box.max().lat()),
-                        Math.max(max().lon(), box.max().lon())));
+        return Points.point(
+                Math.min(min().lat(), box.min().lat()),
+                Math.min(min().lon(), box.min().lon())
+        ).box(Points.point(
+                Math.max(max().lat(), box.max().lat()),
+                Math.max(max().lon(), box.max().lon())));
     }
 
-    public double heightMeters() {
+    public Distance height() {
         return min().distanceTo(max().lon(min()));
     }
 
-    public double widthMeters() {
+    public Distance width() {
         return min().distanceTo(min().lon(max()));
     }
 
@@ -117,13 +115,16 @@ public final class Box implements Serializable {
                 IntStream.range(0, lonX).mapToObj(j -> {
                     double lat = min.min().lat() + i * scaleLatSpan;
                     double lon = min.min().lon() + j * scaleLonSpan;
-                    return new Box(
-                            new DoublePoint(lat, lon),
-                            new DoublePoint(lat + scaleLatSpan, lon + scaleLonSpan));
+                    return Points.point(lat, lon).box(
+                            Points.point(lat + scaleLatSpan, lon + scaleLonSpan));
                 }))
                 .flatMap(s -> s)
                 .map(box -> box.scaledTo(scale))
                 .collect(Collectors.toList());
+    }
+
+    static Box box(Point min, Point max) {
+        return new Box(min, max);
     }
 
     private boolean containsBox(Box box) {
@@ -133,15 +134,15 @@ public final class Box implements Serializable {
                 contains(box.min().lon(box.max()));
     }
 
-    private static Point min(Point min, Point max) {
-        return new DoublePoint(
-                Math.min(min.lat(), max.lat()),
-                Math.min(min.lon(), max.lon()));
-    }
-
-    private static Point max(Point min, Point max) {
-        return new DoublePoint(
-                Math.max(min.lat(), max.lat()),
-                Math.max(min.lon(), max.lon()));
+    private static Point[] minMax(Point min, Point max) {
+        double minLat = min.lat();
+        double minLon = min.lon();
+        double maxLon = max.lon();
+        double maxLat = max.lat();
+        return minLat < maxLat && minLon < maxLon ? new Point[]{min, max}
+                : new Point[]{
+                Points.point(Math.min(minLat, maxLat), Math.min(minLon, maxLon)),
+                Points.point(Math.max(min.lat(), max.lat()), Math.max(min.lon(), max.lon()))
+        };
     }
 }

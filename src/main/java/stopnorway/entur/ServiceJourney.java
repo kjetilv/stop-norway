@@ -1,4 +1,4 @@
-package stopnorway.data;
+package stopnorway.entur;
 
 import stopnorway.database.Entity;
 import stopnorway.database.Id;

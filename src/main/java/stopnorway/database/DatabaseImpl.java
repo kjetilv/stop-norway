@@ -3,9 +3,13 @@ package stopnorway.database;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import stopnorway.data.RoutePoint;
-import stopnorway.data.ScheduledStopPoint;
-import stopnorway.data.ServiceLink;
+import stopnorway.Database;
+import stopnorway.geo.Point;
+import stopnorway.entur.RoutePoint;
+import stopnorway.entur.ScheduledStopPoint;
+import stopnorway.entur.ServiceLink;
+import stopnorway.geo.Box;
+import stopnorway.geo.Scale;
 import stopnorway.hash.AbstractHashable;
 
 import java.util.*;

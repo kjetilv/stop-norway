@@ -1,7 +1,12 @@
-package stopnorway.database;
+package stopnorway;
 
-import stopnorway.data.ScheduledStopPoint;
-import stopnorway.data.ServiceLink;
+import stopnorway.database.Entity;
+import stopnorway.database.Id;
+import stopnorway.database.ServiceLeg;
+import stopnorway.geo.Points;
+import stopnorway.entur.ScheduledStopPoint;
+import stopnorway.entur.ServiceLink;
+import stopnorway.geo.Box;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -9,7 +14,7 @@ import java.util.stream.Stream;
 
 public interface Database {
 
-    Box NORWAY = new Box(new DoublePoint(57, 4), new DoublePoint(72, 32));
+    Box NORWAY = Points.point(57, 4).box(Points.point(72, 32));
 
     Box getBox();
 

@@ -1,7 +1,5 @@
 package stopnorway.in;
 
-import stopnorway.data.Field;
-import stopnorway.data.Sublist;
 import stopnorway.database.Id;
 
 import java.util.*;

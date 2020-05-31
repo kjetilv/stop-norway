@@ -1,4 +1,4 @@
-package stopnorway.database;
+package stopnorway.geo;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -44,6 +44,31 @@ public final class DoublePoint extends AbstractPoint {
     @Override
     public Point lon(Point lon) {
         return new DoublePoint(lat, lon.lon());
+    }
+
+    @Override
+    public Point translate(Translation translation) {
+        long l = translation.getDistance().toMillis();
+        Distance latTranslation = Distance.of(translation.getDirection().lat().apply(l), Unit.MM);
+        Distance lonTranslation = Distance.of(translation.getDirection().lon().apply(l), Unit.MM);
+
+        double latRadians = Math.toRadians(lat());
+
+        Distance degreeLonMeters =
+                Distance.of(DEGREE_LON.toMeters() * Math.cos(latRadians), Unit.M);
+
+        double deltaLat = 1.0d * latTranslation.toMillis() / DEGREE_LAT.toMillis();
+        double deltaLon = 1.0d * lonTranslation.toMillis() / degreeLonMeters.toMillis();
+
+        return new DoublePoint(lat() + deltaLat, lon() + deltaLon);
+    }
+
+    @Override
+    public Box squareBox(Distance sideLength) {
+        Point max = this
+                .translate(Translation.towards(Direction.NORTH, sideLength))
+                .translate(Translation.towards(Direction.EAST, sideLength));
+        return this.box(max);
     }
 
     @Override

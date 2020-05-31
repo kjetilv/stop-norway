@@ -1,8 +1,8 @@
 package stopnorway.in;
 
-import stopnorway.data.*;
 import stopnorway.database.Entity;
-import stopnorway.database.Point;
+import stopnorway.entur.*;
+import stopnorway.geo.Point;
 
 import java.util.Collection;
 import java.util.List;

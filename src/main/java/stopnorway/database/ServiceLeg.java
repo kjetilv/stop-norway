@@ -1,12 +1,16 @@
 package stopnorway.database;
 
-import stopnorway.data.LinkSequenceProjection;
-import stopnorway.data.ScheduledStopPoint;
-import stopnorway.data.ServiceLink;
+import stopnorway.entur.LinkSequenceProjection;
+import stopnorway.geo.Point;
+import stopnorway.entur.ScheduledStopPoint;
+import stopnorway.entur.ServiceLink;
+import stopnorway.geo.Box;
+import stopnorway.geo.Scale;
 import stopnorway.util.MostlyOnce;
 
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -23,9 +27,9 @@ public final class ServiceLeg implements Serializable {
 
     public ServiceLeg(ScheduledStopPoint from, ScheduledStopPoint to, ServiceLink link) {
 
-        this.from = from;
-        this.to = to;
-        this.link = link;
+        this.from = Objects.requireNonNull(from, "from");
+        this.to = Objects.requireNonNull(to, "to");
+        this.link = Objects.requireNonNull(link, "link");
 
         box = MostlyOnce.get(() ->
                 this.link.getProjections().stream()
@@ -69,8 +73,8 @@ public final class ServiceLeg implements Serializable {
     @Override
     public String toString() {
         return getClass().getSimpleName() +
-                "[" + from.getName() +
-                " => " + to.getName() +
+                "[" + (from.getName() == null ? from : from.getName()) +
+                " => " + (to.getName() == null ? to : to.getName()) +
                 ": " + link.getDistance() +
                 "m]";
     }

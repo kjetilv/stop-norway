@@ -14,7 +14,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ForkJoinPool;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -115,8 +114,7 @@ public final class Parser {
         Instant startTime = noisy ? Instant.now() : null;
         try {
             update(operatorSource, parsers);
-            return stream(parsers)
-                    .flatMap(Collection::stream);
+            return stream(parsers).flatMap(Collection::stream);
         } catch (Exception e) {
             throw new IllegalStateException
                     (this + " failed to update " + parsers.size() + " parsers for " + operatorSource, e);
@@ -153,27 +151,26 @@ public final class Parser {
         operatorSource.eventReaders().forEach(eventReader -> {
             while (eventReader.hasNext()) {
                 XMLEvent event = event(eventReader);
-                for (EntityParser<? extends Entity> parser : parsers) {
-                    if (parser.test(event)) {
-                        feed(parser, event, operatorSource);
-                    }
-                }
+                process(parsers, operatorSource, event);
             }
         });
     }
 
-    private void feed(EntityParser<? extends Entity> parser, XMLEvent event, OperatorSource operatorSource) {
-        try {
-            parser.accept(event);
-        } catch (Exception e) {
-            throw new IllegalStateException(
-                    this + " failed to parse for " + operatorSource + " with " + parser, e);
+    private void process(
+            Collection<EntityParser<? extends Entity>> parsers,
+            OperatorSource operatorSource,
+            XMLEvent event
+    ) {
+        for (EntityParser<? extends Entity> parser : parsers) {
+            if (parser.canDigest(event)) {
+                try {
+                    parser.digest(event);
+                } catch (Exception e) {
+                    throw new IllegalStateException(
+                            this + " failed to feed " + event + " for " + operatorSource + " to " + parser, e);
+                }
+            }
         }
-    }
-
-    @NotNull
-    private Predicate<EntityParser<? extends Entity>> showsInterest(XMLEvent event) {
-        return parser -> parser.test(event);
     }
 
     private static Entity idCheck(Entity e1, Entity e2) {

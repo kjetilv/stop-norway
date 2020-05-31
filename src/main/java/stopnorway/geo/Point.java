@@ -1,4 +1,4 @@
-package stopnorway.database;
+package stopnorway.geo;
 
 import java.io.Serializable;
 import java.util.Collections;
@@ -10,6 +10,10 @@ public interface Point extends Serializable {
             return Collections.emptyList();
         }
         return DoublePoint.parse(str.split("\\s+"));
+    }
+
+    default Box box(Point max) {
+        return Box.box(this, max);
     }
 
     Box scaledBox(Scale scale);
@@ -26,5 +30,9 @@ public interface Point extends Serializable {
 
     Point lon(Point lon);
 
-    double distanceTo(Point point);
+    Distance distanceTo(Point point);
+
+    Point translate(Translation translation);
+
+    Box squareBox(Distance sides);
 }

@@ -1,13 +1,17 @@
-package stopnorway.database;
+package stopnorway.geo;
 
 import java.util.Objects;
 
 import static java.lang.Math.*;
+import static stopnorway.geo.Unit.MM;
 
-abstract class AbstractPoint implements Point {
+public abstract class AbstractPoint implements Point {
+
+    static final Distance DEGREE_LAT = Distance.of(110_574_235, MM);
+
+    static final Distance DEGREE_LON = Distance.of(110_572_833, MM);
 
     private static final int R = 6371;
-    private static final int K = 1000;
 
     @Override
     public boolean equals(Object o) {
@@ -27,18 +31,18 @@ abstract class AbstractPoint implements Point {
     }
 
     @Override
-    public double distanceTo(Point point) {
+    public Distance distanceTo(Point point) {
         double phi1 = toRadians(lat());
         double phi2 = toRadians(point.lat());
         double dphi = toRadians(point.lat() - lat());
         double dlambda = toRadians(point.lon() - lon());
         double a = pow(sin(dphi / 2), 2) + cos(phi1) * cos(phi2) * pow(sin(dlambda / 2), 2);
         double c = 2 * atan2(sqrt(a), sqrt(1 - a));
-        return R * c * K;
+        return Distance.of(R * c * 1000.D, Unit.M);
     }
 
     @Override
     public Box scaledBox(Scale scale) {
-        return new Box(downTo(scale), upTo(scale));
+        return downTo(scale).box(upTo(scale));
     }
 }

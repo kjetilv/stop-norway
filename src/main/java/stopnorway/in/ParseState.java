@@ -1,7 +1,5 @@
 package stopnorway.in;
 
-import stopnorway.data.Field;
-import stopnorway.data.Sublist;
 import stopnorway.database.Entity;
 import stopnorway.database.Id;
 
@@ -174,6 +172,7 @@ class ParseState<E extends Entity> {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private static Map<Sublist, Collection<?>> toMap(Map<Sublist, Collection<Collection<?>>> sublists) {
         return sublists.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, ParseState::unpack));

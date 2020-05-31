@@ -1,4 +1,4 @@
-package stopnorway.data;
+package stopnorway.in;
 
 import stopnorway.in.EnumMatch;
 

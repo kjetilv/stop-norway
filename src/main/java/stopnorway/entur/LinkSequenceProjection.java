@@ -1,7 +1,10 @@
-package stopnorway.data;
+package stopnorway.entur;
 
 import org.jetbrains.annotations.NotNull;
 import stopnorway.database.*;
+import stopnorway.geo.Box;
+import stopnorway.geo.Point;
+import stopnorway.geo.Scale;
 import stopnorway.util.MostlyOnce;
 
 import java.util.*;
@@ -32,8 +35,7 @@ public final class LinkSequenceProjection extends Entity {
         max = MostlyOnce.get(this::computeMax);
         box = MostlyOnce.get(() ->
                 min.get().flatMap(min ->
-                        max.get().map(max ->
-                                new Box(min, max))));
+                        max.get().map(min::box)));
     }
 
     public Stream<Box> getBoxes(Scale scale) {

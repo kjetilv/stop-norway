@@ -1,7 +1,8 @@
-package stopnorway.data;
+package stopnorway.entur;
 
 import stopnorway.database.Entity;
 import stopnorway.database.Id;
+import stopnorway.in.Field;
 
 import java.util.function.Consumer;
 

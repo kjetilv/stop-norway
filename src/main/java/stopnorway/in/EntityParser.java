@@ -1,7 +1,5 @@
 package stopnorway.in;
 
-import stopnorway.data.Field;
-import stopnorway.data.Sublist;
 import stopnorway.database.Entity;
 import stopnorway.database.Id;
 import stopnorway.database.Operator;
@@ -14,14 +12,12 @@ import javax.xml.stream.events.EndElement;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Predicate;
 
 import static javax.xml.stream.XMLStreamConstants.END_ELEMENT;
 import static javax.xml.stream.XMLStreamConstants.START_ELEMENT;
 
-public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>, Predicate<XMLEvent> {
+public final class EntityParser<E extends Entity> {
 
     private final Class<E> type;
 
@@ -69,20 +65,18 @@ public final class EntityParser<E extends Entity> implements Consumer<XMLEvent>,
         this.state = state;
     }
 
-    @Override
-    public boolean test(XMLEvent event) {
+    public boolean canDigest(XMLEvent event) {
         return state.isBuildingEntity() ||
                 event.getEventType() == START_ELEMENT && isEntity(event.asStartElement());
     }
 
-    @Override
-    public void accept(XMLEvent event) {
+    public void digest(XMLEvent event) {
         try {
             int eventType = event.getEventType();
             if (state.isBuildingList()) {
                 EntityParser<?> entityParser = subParsers.get(state.getActiveSublist());
                 if (entityParser != null) {
-                    entityParser.accept(event);
+                    entityParser.digest(event);
                 }
             }
             if (eventType == END_ELEMENT) {

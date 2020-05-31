@@ -1,9 +1,9 @@
-package stopnorway.data;
+package stopnorway.entur;
 
 import org.jetbrains.annotations.NotNull;
 import stopnorway.database.Entity;
 import stopnorway.database.Id;
-import stopnorway.database.Point;
+import stopnorway.geo.Point;
 import stopnorway.util.MostlyOnce;
 
 import java.util.*;
