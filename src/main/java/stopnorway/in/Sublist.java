@@ -8,5 +8,7 @@ public enum Sublist implements EnumMatch {
 
     pointsInSequence,
 
+    linksInSequence,
+
     passingTimes
 }

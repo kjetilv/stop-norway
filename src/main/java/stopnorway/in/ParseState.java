@@ -140,9 +140,13 @@ class ParseState<E extends Entity> {
     }
 
     void setFieldContents(String contents) {
-        if (activeField == null) {
+        if (this.activeField == null) {
             throw new IllegalStateException(this + " cannot append to unknown field: '" + contents + "''");
         }
+        setFieldContents(this.activeField, contents);
+    }
+
+    void setFieldContents(Field activeField, String contents) {
         if (fieldContents == null) {
             fieldContents = new EnumMap<>(Field.class);
         }

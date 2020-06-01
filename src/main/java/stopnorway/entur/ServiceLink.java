@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import stopnorway.database.Entity;
 import stopnorway.database.Id;
 import stopnorway.geo.Point;
+import stopnorway.util.Accept;
 import stopnorway.util.MostlyOnce;
 
 import java.util.*;
@@ -34,7 +35,7 @@ public final class ServiceLink extends Entity {
         this.fromPoint = Objects.requireNonNull(fromPoint, "fromPoint");
         this.toPoint = Objects.requireNonNull(toPoint, "toPoint");
         this.distance = distance == null ? .0F : Float.parseFloat(distance);
-        this.projections = projections == null || projections.isEmpty() ? Collections.emptyList() : projections;
+        this.projections = Accept.list(projections);
 
         this.start = MostlyOnce.get(() -> getFirst(LinkSequenceProjection::getStart));
         this.end = MostlyOnce.get(() -> getFirst(LinkSequenceProjection::getEnd));

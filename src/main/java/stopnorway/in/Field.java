@@ -19,11 +19,15 @@ public enum Field implements EnumMatch {
 
     RoutePointRef,
 
+    RouteRef,
+
     Distance,
 
     DirectionType,
 
     ScheduledStopPointRef,
+
+    ServiceLinkRef,
 
     StopPointInJourneyPatternRef,
 
@@ -31,7 +35,9 @@ public enum Field implements EnumMatch {
 
     DepartureTime,
 
-    posList;
+    posList,
+
+    order;
 
     private final FieldType fieldType;
 

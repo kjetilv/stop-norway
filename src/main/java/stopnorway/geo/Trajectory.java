@@ -2,6 +2,7 @@ package stopnorway.geo;
 
 import stopnorway.geo.Box;
 import stopnorway.geo.Sample;
+import stopnorway.util.Accept;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -18,9 +19,7 @@ public final class Trajectory {
     }
 
     public Trajectory(Collection<Sample> samples) {
-        this.samples = samples == null || samples.isEmpty()
-                ? Collections.emptyList()
-                : List.copyOf(samples);
+        this.samples = Accept.list(samples);
     }
 
     public Collection<Box> getBoxes() {

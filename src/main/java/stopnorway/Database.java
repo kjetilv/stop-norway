@@ -3,10 +3,10 @@ package stopnorway;
 import stopnorway.database.Entity;
 import stopnorway.database.Id;
 import stopnorway.database.ServiceLeg;
-import stopnorway.geo.Points;
+import stopnorway.database.ServicePattern;
 import stopnorway.entur.ScheduledStopPoint;
-import stopnorway.entur.ServiceLink;
 import stopnorway.geo.Box;
+import stopnorway.geo.Points;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -20,8 +20,6 @@ public interface Database {
 
     ScheduledStopPoint getScheduledStopPoint(Id id);
 
-    ServiceLink getServiceLink(Id id);
-
     <E extends Entity> Stream<E> get(Class<E> type);
 
     default Collection<ServiceLeg> getServiceLegs(Box... boxes) {
@@ -29,4 +27,6 @@ public interface Database {
     }
 
     Collection<ServiceLeg> getServiceLegs(Collection<Box> boxes);
+
+    Collection<ServicePattern> getServicePatterns(Collection<Box> boxes);
 }

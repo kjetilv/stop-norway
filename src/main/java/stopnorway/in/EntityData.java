@@ -38,6 +38,18 @@ public final class EntityData {
         return contents.get(field);
     }
 
+    public int getIntContent(Field field) {
+        String value = getContent(field);
+        if (value == null) {
+            throw new IllegalStateException("No int value: " + field);
+        }
+        try {
+            return Integer.parseInt(value);
+        } catch (Exception e) {
+            throw new IllegalStateException("Unexpected int value: " + value, e);
+        }
+    }
+
     public Collection<?> getSublist(Sublist sublist) {
         return sublists.get(sublist);
     }

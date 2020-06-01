@@ -1,31 +1,14 @@
 package stopnorway.entur;
 
-import stopnorway.database.Entity;
 import stopnorway.database.Id;
 
-import java.util.function.Consumer;
+public class StopPointInJourneyPattern extends SequencedRef {
 
-public class StopPointInJourneyPattern extends Entity {
-
-    private final Id scheduledStopPointRef;
-
-    public StopPointInJourneyPattern(Id id, Id scheduledStopPointRef) {
-        super(id);
-        this.scheduledStopPointRef = scheduledStopPointRef;
-    }
-
-    @Override
-    public void hashTo(Consumer<byte[]> h) {
-        super.hashTo(h);
-        hash(h, scheduledStopPointRef);
+    public StopPointInJourneyPattern(Id id, int order, Id scheduledStopPointRef) {
+        super(id, order, scheduledStopPointRef);
     }
 
     public Id getScheduledStopPointRef() {
-        return scheduledStopPointRef;
-    }
-
-    @Override
-    protected StringBuilder withStringBody(StringBuilder sb) {
-        return super.withStringBody(sb).append("scheduledStopPointRef: ").append(scheduledStopPointRef);
+        return getRef();
     }
 }

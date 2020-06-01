@@ -3,6 +3,7 @@ package stopnorway.in;
 import stopnorway.database.Entity;
 import stopnorway.database.Id;
 import stopnorway.database.Operator;
+import stopnorway.util.Accept;
 
 import javax.xml.namespace.QName;
 import javax.xml.stream.Location;
@@ -59,9 +60,7 @@ public final class EntityParser<E extends Entity> {
         this.sublists = subParsers == null || subParsers.isEmpty()
                 ? null
                 : subParsers.keySet().toArray(Sublist[]::new);
-        this.subParsers = subParsers == null || subParsers.isEmpty()
-                ? Collections.emptyMap()
-                : Map.copyOf(subParsers);
+        this.subParsers = Accept.map(subParsers);
         this.state = state;
     }
 
@@ -102,6 +101,15 @@ public final class EntityParser<E extends Entity> {
                 StartElement startElement = event.asStartElement();
                 if (isEntity(startElement)) {
                     state.startBuildingEntity(id(startElement, "id"));
+
+                    Iterator<Attribute> attributes = startElement.getAttributes();
+                    while(attributes.hasNext()) {
+                        Attribute attribute = attributes.next();
+                        Field matchingField = attributeMatch(fields, attribute);
+                        if (matchingField != null) {
+                            state.setFieldContents(matchingField, attribute.getValue());
+                        }
+                    }
                     return;
                 }
                 if (state.isBuildingEntity()) {
@@ -138,13 +146,16 @@ public final class EntityParser<E extends Entity> {
 
     public <S extends Entity> EntityParser<E> withSublist(Sublist sublist, EntityParser<S> entityParser) {
         LinkedHashMap<Sublist, EntityParser<?>> newSublists = new LinkedHashMap<>(subParsers);
-        newSublists.put(sublist, entityParser);
-        return new EntityParser<>(
-                type,
-                simpleName,
-                state,
-                fields == null ? null : Arrays.asList(fields),
-                newSublists);
+        EntityParser<?> existing = newSublists.put(sublist, entityParser);
+        if (existing == null) {
+            return new EntityParser<>(
+                    type,
+                    simpleName,
+                    state,
+                    fields == null ? null : Arrays.asList(fields),
+                    newSublists);
+        }
+        throw new IllegalStateException("Already contained " + sublist + " -> " + existing);
     }
 
     @Override
@@ -183,6 +194,18 @@ public final class EntityParser<E extends Entity> {
         }
         for (M match : matches) {
             if (match.startMatch(startElement)) {
+                return match;
+            }
+        }
+        return null;
+    }
+
+    private static <M extends EnumMatch> M attributeMatch(M[] matches, Attribute attribute) {
+        if (matches == null) {
+            return null;
+        }
+        for (M match : matches) {
+            if (match.attributeMatch(attribute)) {
                 return match;
             }
         }

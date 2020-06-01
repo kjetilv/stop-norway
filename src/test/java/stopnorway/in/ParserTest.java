@@ -2,27 +2,28 @@ package stopnorway.in;
 
 import org.junit.jupiter.api.Test;
 import stopnorway.Database;
-import stopnorway.geo.*;
-import stopnorway.database.*;
+import stopnorway.database.Operator;
+import stopnorway.geo.Box;
+import stopnorway.geo.Point;
+import stopnorway.geo.Scale;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static stopnorway.geo.Points.point;
-import static stopnorway.geo.Unit.M;
 
 class ParserTest extends ParserTestCase {
 
     @Test
     public void serviceLinks() {
-        Database run = run(Operator.OSC);
+        Database run = run(Operator.FLB);
 
-        Box surroundingBox = point(59.675, 10.609).box(point(59.679, 10.584));
+        Box surroundingBox = point(60.86, 7.11).box(point(60.87, 7.12));
 
         assertThat(run.getServiceLegs(
-                surroundingBox)).hasSize(6);
+                surroundingBox)).hasSize(11);
 
-        Box oscarsborgBox = point(59.67566, 10.58461).squareBox(Distance.of(10, M));
+        Point flaamStasjon = point(60.86307, 7.11378);
 
-        assertThat(run.getServiceLegs(oscarsborgBox)).hasSize(2);
+        assertThat(run.getServiceLegs(flaamStasjon.scaledBox(Scale.DEFAULT))).hasSize(11);
     }
 
 }
