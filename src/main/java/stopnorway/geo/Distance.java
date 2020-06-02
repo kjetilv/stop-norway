@@ -19,7 +19,7 @@ public final class Distance {
 
     @Override
     public boolean equals(Object o) {
-        return this == o || o instanceof Distance && toMillis() == ((Distance)o).toMillis();
+        return this == o || o instanceof Distance && toMillis() == ((Distance) o).toMillis();
     }
 
     @Override

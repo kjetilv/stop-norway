@@ -1,7 +1,6 @@
 package stopnorway.in;
 
 import org.codehaus.stax2.XMLInputFactory2;
-import stopnorway.database.Operator;
 
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLInputFactory;
@@ -21,11 +20,11 @@ public final class OperatorSource {
 
     static final int BUFF = 16 * 1024;
     private static final XMLInputFactory xmlInputFactory = XMLInputFactory2.newFactory();
-    private final Operator operator;
+    private final Enum<?> operator;
 
     private final Collection<File> files;
 
-    public OperatorSource(Operator operator, Collection<File> files) {
+    public OperatorSource(Enum<?> operator, Collection<File> files) {
         this.operator = operator;
         this.files = files;
     }
@@ -44,7 +43,7 @@ public final class OperatorSource {
         return readers(files);
     }
 
-    static OperatorSource create(Operator operator) {
+    static OperatorSource create(Enum<?> operator) {
         return new OperatorSource(operator, files(operator));
     }
 
@@ -70,7 +69,7 @@ public final class OperatorSource {
         });
     }
 
-    private static Collection<File> files(Operator operator) {
+    private static Collection<File> files(Enum<?> operator) {
         File documents = new File(
                 new File(
                         new File(System.getProperty("user.home")),
@@ -87,7 +86,7 @@ public final class OperatorSource {
         ).collect(Collectors.toList());
     }
 
-    private static String sharedData(Operator operator) {
+    private static String sharedData(Enum<?> operator) {
         return String.format("_%s_shared_data.xml.gz", operator.name());
     }
 }

@@ -3,20 +3,22 @@ package stopnorway.entur;
 import stopnorway.database.Entity;
 import stopnorway.database.Id;
 
+import java.time.LocalTime;
 import java.util.function.Consumer;
 
 public class TimetabledPassingTime extends Entity {
 
     private final Id stopPointInJourneyPatternRef;
-    private final String departureTime;
+
+    private final LocalTime departureTime;
 
     public TimetabledPassingTime(Id id, Id stopPointInJourneyPatternRef, String departureTime) {
         super(id);
         this.stopPointInJourneyPatternRef = stopPointInJourneyPatternRef;
-        this.departureTime = departureTime;
+        this.departureTime = departureTime == null || departureTime.isBlank() ? null : LocalTime.parse(departureTime);
     }
 
-    public String getDepartureTime() {
+    public LocalTime getDepartureTime() {
         return departureTime;
     }
 

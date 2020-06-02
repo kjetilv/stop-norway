@@ -1,4 +1,4 @@
-package stopnorway.hash;
+package stopnorway.util;
 
 import java.util.UUID;
 

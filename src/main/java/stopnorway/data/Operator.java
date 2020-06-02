@@ -1,4 +1,4 @@
-package stopnorway.database;
+package stopnorway.data;
 
 @SuppressWarnings("unused")
 public enum Operator {

@@ -2,7 +2,6 @@ package stopnorway.in;
 
 import stopnorway.database.Entity;
 import stopnorway.database.Id;
-import stopnorway.database.Operator;
 import stopnorway.util.Accept;
 
 import javax.xml.namespace.QName;
@@ -13,7 +12,6 @@ import javax.xml.stream.events.EndElement;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 import java.util.*;
-import java.util.function.Function;
 
 import static javax.xml.stream.XMLStreamConstants.END_ELEMENT;
 import static javax.xml.stream.XMLStreamConstants.START_ELEMENT;
@@ -91,7 +89,8 @@ public final class EntityParser<E extends Entity> {
                 Sublist matchingSublist = endMatch(this.sublists, endElement);
                 if (matchingSublist != null && matchingSublist == state.getActiveSublist()) {
                     EntityParser<?> listParser = subParsers.get(matchingSublist);
-                    Map<Id, ?> idMap = listParser.get(true);
+                    Map<Id, ? extends Entity> idMap = listParser.get(true);
+                    state.absorb(idMap);
                     state.completeList(matchingSublist, idMap.values());
                     listParser.reset();
                 }
@@ -103,7 +102,7 @@ public final class EntityParser<E extends Entity> {
                     state.startBuildingEntity(id(startElement, "id"));
 
                     Iterator<Attribute> attributes = startElement.getAttributes();
-                    while(attributes.hasNext()) {
+                    while (attributes.hasNext()) {
                         Attribute attribute = attributes.next();
                         Field matchingField = attributeMatch(fields, attribute);
                         if (matchingField != null) {
@@ -140,10 +139,6 @@ public final class EntityParser<E extends Entity> {
         }
     }
 
-    private void reset() {
-        state.reset();
-    }
-
     public <S extends Entity> EntityParser<E> withSublist(Sublist sublist, EntityParser<S> entityParser) {
         LinkedHashMap<Sublist, EntityParser<?>> newSublists = new LinkedHashMap<>(subParsers);
         EntityParser<?> existing = newSublists.put(sublist, entityParser);
@@ -163,12 +158,16 @@ public final class EntityParser<E extends Entity> {
         return getClass().getSimpleName() + "[" + simpleName + "/" + Arrays.toString(fields) + "]";
     }
 
-    public Map<Id, E> get() {
+    public Map<Id, Entity> get() {
         return get(false);
     }
 
-    public Map<Id, E> get(boolean reset) {
+    public Map<Id, Entity> get(boolean reset) {
         return state.get(reset);
+    }
+
+    private void reset() {
+        state.reset();
     }
 
     private boolean isEntity(StartElement startElement) {
@@ -181,18 +180,14 @@ public final class EntityParser<E extends Entity> {
 
     private static Id id(StartElement startElement, String attr) {
         String[] idParts = get(startElement, attr).split(":");
-        return Id.id(
-                Operator.valueOf(idParts[0]),
-                idParts[1],
-                idParts[2],
-                version(Integer::parseInt, startElement, 1));
+        return Id.id(idParts[0], idParts[1], idParts[2]);
     }
 
     private static <M extends EnumMatch> M startMatch(M[] matches, StartElement startElement) {
         if (matches == null) {
             return null;
         }
-        for (M match : matches) {
+        for (M match: matches) {
             if (match.startMatch(startElement)) {
                 return match;
             }
@@ -204,7 +199,7 @@ public final class EntityParser<E extends Entity> {
         if (matches == null) {
             return null;
         }
-        for (M match : matches) {
+        for (M match: matches) {
             if (match.attributeMatch(attribute)) {
                 return match;
             }
@@ -216,7 +211,7 @@ public final class EntityParser<E extends Entity> {
         if (matches == null) {
             return null;
         }
-        for (M match : matches) {
+        for (M match: matches) {
             if (match.endMatch(endElement)) {
                 return match;
             }
@@ -230,14 +225,5 @@ public final class EntityParser<E extends Entity> {
             throw new IllegalArgumentException("No attribute '" + attr + "' in " + startElement);
         }
         return attributeByName.getValue();
-    }
-
-    private static <T> T version(Function<String, T> function, StartElement startElement, T defaultValue) {
-        Attribute attribute = startElement.getAttributeByName(QName.valueOf("version"));
-        if (attribute == null) {
-            return defaultValue;
-        }
-        String version = attribute.getValue();
-        return version == null ? defaultValue : function.apply(version);
     }
 }

@@ -5,8 +5,11 @@ import static stopnorway.geo.Unit.MM;
 public final class Sample {
 
     private static final Distance DEGREE_LAT = Distance.of(110_574_235, MM);
+
     private static final Distance DEGREE_LON = Distance.of(110_572_833, MM);
+
     private final Point point;
+
     private final Distance accuracy;
 
     public Sample(Point point, Distance accuracy) {

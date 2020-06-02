@@ -34,8 +34,7 @@ public final class EntityParsers {
         return new EntityParser<>(
                 ServiceJourney.class,
                 EntityParsers::serviceJourney,
-                Name,
-                JourneyPatternRef
+                Name, JourneyPatternRef, LineRef
         ).withSublist(Sublist.passingTimes,
                 new EntityParser<>(
                         TimetabledPassingTime.class,
@@ -120,6 +119,7 @@ public final class EntityParsers {
                 data.getContent(Name),
                 data.getContent(TransportMode),
                 data.getId(JourneyPatternRef),
+                data.getId(LineRef),
                 (Collection<TimetabledPassingTime>) data.getSublist(Sublist.passingTimes));
     }
 

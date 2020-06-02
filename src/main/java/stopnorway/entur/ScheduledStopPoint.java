@@ -2,10 +2,11 @@ package stopnorway.entur;
 
 import stopnorway.database.Entity;
 import stopnorway.database.Id;
+import stopnorway.database.Named;
 
 import java.util.function.Consumer;
 
-public final class ScheduledStopPoint extends Entity {
+public final class ScheduledStopPoint extends Entity implements Named {
 
     private final String name;
 
@@ -14,6 +15,7 @@ public final class ScheduledStopPoint extends Entity {
         this.name = name == null || name.isBlank() ? null : name.trim();
     }
 
+    @Override
     public String getName() {
         return name;
     }

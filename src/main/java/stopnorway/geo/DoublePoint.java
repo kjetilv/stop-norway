@@ -12,7 +12,8 @@ public final class DoublePoint extends AbstractPoint {
     private final double lon;
 
     public DoublePoint(String lat, String lon) {
-        this(Double.parseDouble(Objects.requireNonNull(lat, "lat")),
+        this(
+                Double.parseDouble(Objects.requireNonNull(lat, "lat")),
                 Double.parseDouble(Objects.requireNonNull(lon, "lon")));
     }
 

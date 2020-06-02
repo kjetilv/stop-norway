@@ -7,35 +7,36 @@ import java.util.function.Consumer;
 
 public final class Id extends AbstractHashable {
 
-    private final int version;
-
-    private final Operator operator;
+    private final String operator;
 
     private final String type;
 
     private final String id;
 
-    public Id(Operator operator, Class<? extends Entity> type, String id, int version) {
-        this(operator, Objects.requireNonNull(type, "type").getSimpleName(), id, version);
+    public Id(Enum<?> operator, Class<? extends Entity> type, String id) {
+        this(Objects.requireNonNull(operator, "operator").name(), type, id);
     }
 
-    public Id(Operator operator, String type, String id, int version) {
+    public Id(String operator, Class<? extends Entity> type, String id) {
+        this(operator, Objects.requireNonNull(type, "type").getSimpleName(), id);
+    }
+
+    public Id(String operator, String type, String id) {
 
         this.operator = Objects.requireNonNull(operator, "operator");
         this.type = Objects.requireNonNull(type, "type");
         this.id = Objects.requireNonNull(id, "id");
-        this.version = version;
     }
 
-    public static Id id(Operator operator, String type, String id, int version) {
-        return new Id(operator, type, id, version);
+    public static Id id(Enum<?> operator, String type, String id) {
+        return id(operator.name(), type, id);
     }
 
-    public int getVersion() {
-        return version;
+    public static Id id(String operator, String type, String id) {
+        return new Id(operator, type, id);
     }
 
-    public Operator getOperator() {
+    public String getOperator() {
         return operator;
     }
 
@@ -49,13 +50,17 @@ public final class Id extends AbstractHashable {
 
     @Override
     public void hashTo(Consumer<byte[]> h) {
-        hash(h, operator);
-        hash(h, id, type);
-        hash(h, version);
+        hash(h, operator, id, type);
+    }
+
+    public boolean is(Class<? extends Entity> type) {
+        return this.type.equals(type.getSimpleName());
     }
 
     @Override
     protected StringBuilder withStringBody(StringBuilder sb) {
-        return sb.append(operator).append(":").append(type).append(":").append(id);
+        return sb.append(operator)
+                .append(":").append(type)
+                .append(":").append(id);
     }
 }

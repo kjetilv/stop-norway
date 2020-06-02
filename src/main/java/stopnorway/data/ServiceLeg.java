@@ -1,22 +1,24 @@
-package stopnorway.database;
+package stopnorway.data;
 
+import stopnorway.database.AbstractBoxed;
+import stopnorway.database.Id;
+import stopnorway.database.Ordered;
 import stopnorway.entur.LinkSequenceProjection;
 import stopnorway.entur.ScheduledStopPoint;
 import stopnorway.entur.ServiceLink;
 import stopnorway.geo.Box;
 import stopnorway.geo.Point;
 import stopnorway.geo.Scale;
-import stopnorway.util.MostlyOnce;
 
 import java.io.Serializable;
-import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
-public final class ServiceLeg implements Serializable {
+public final class ServiceLeg extends AbstractBoxed implements Serializable, Ordered {
+
+    private final Id serviceLinkId;
 
     private final ScheduledStopPoint from;
 
@@ -25,25 +27,28 @@ public final class ServiceLeg implements Serializable {
     private final ServiceLink link;
 
     private final Integer order;
-    private final Supplier<Box> box;
 
-    public ServiceLeg(ScheduledStopPoint from, ScheduledStopPoint to, ServiceLink link) {
-        this(from, to, link, null);
+    public ServiceLeg(Id serviceLinkId, ScheduledStopPoint from, ScheduledStopPoint to, ServiceLink link) {
+        this(serviceLinkId, from, to, link, null);
     }
 
-    public ServiceLeg(ScheduledStopPoint from, ScheduledStopPoint to, ServiceLink link, Integer order) {
-
+    public ServiceLeg(
+            Id serviceLinkId,
+            ScheduledStopPoint from,
+            ScheduledStopPoint to,
+            ServiceLink link,
+            Integer order
+    ) {
+        super(serviceLinkId);
+        this.serviceLinkId = serviceLinkId;
         this.from = Objects.requireNonNull(from, "from");
         this.to = Objects.requireNonNull(to, "to");
         this.link = Objects.requireNonNull(link, "link");
         this.order = order;
+    }
 
-        box = MostlyOnce.get(() ->
-                this.link.getProjections().stream()
-                        .map(LinkSequenceProjection::getBox)
-                        .flatMap(Optional::stream)
-                        .reduce(Box::combined)
-                        .orElse(null));
+    public Id getServiceLinkId() {
+        return serviceLinkId;
     }
 
     public ScheduledStopPoint getFrom() {
@@ -58,12 +63,12 @@ public final class ServiceLeg implements Serializable {
         return this.link.getStartPoint();
     }
 
-    public Integer getOrder() {
-        return Objects.requireNonNull(order, "order");
+    public Optional<Point> getEndPoint() {
+        return this.link.getEndPoint();
     }
 
-    public Optional<Point> getEndPoint() {
-        return this.link.getStartPoint();
+    public int getOrder() {
+        return Objects.requireNonNull(order, "order");
     }
 
     public ServiceLink getLink() {
@@ -83,18 +88,6 @@ public final class ServiceLeg implements Serializable {
         return Objects.hash(from, to, link);
     }
 
-    public Box getBox() {
-        return box.get();
-    }
-
-    public Collection<Box> scaledBoxes(Scale scale) {
-        return link.getProjections().stream()
-                .flatMap(linkSequenceProjection ->
-                        getBoxes(linkSequenceProjection, scale))
-                .distinct()
-                .collect(Collectors.toList());
-    }
-
     @Override
     public String toString() {
         return getClass().getSimpleName() +
@@ -104,14 +97,23 @@ public final class ServiceLeg implements Serializable {
                 "m]";
     }
 
-    public boolean overlaps(Box box) {
-        return getBox().overlaps(box);
+    Stream<Box> scaledBoxes(Scale scale) {
+        return link.getProjections().stream()
+                .flatMap(toScaled(scale))
+                .distinct();
     }
 
-    private Stream<Box> getBoxes(LinkSequenceProjection linkSequenceProjection, Scale scale) {
-        return linkSequenceProjection.getTrajectory().stream()
-                .map(p ->
-                        p.scaledBox(scale))
+    @Override
+    protected Optional<Box> computeBox() {
+        return this.link.getProjections().stream()
+                .map(LinkSequenceProjection::getBox)
+                .flatMap(Optional::stream)
+                .reduce(Box::combined);
+    }
+
+    private Function<LinkSequenceProjection, Stream<Box>> toScaled(Scale scale) {
+        return linkSequenceProjection -> linkSequenceProjection.getTrajectory().stream()
+                .map(p -> p.scaledBox(scale))
                 .distinct();
     }
 }

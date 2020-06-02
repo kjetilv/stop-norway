@@ -2,20 +2,20 @@ package stopnorway.entur;
 
 import stopnorway.database.Entity;
 import stopnorway.database.Id;
+import stopnorway.database.Named;
 import stopnorway.util.Accept;
 
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 import java.util.function.Consumer;
 
-public class JourneyPattern extends Entity {
+public class JourneyPattern extends Entity implements Named {
 
     private final String name;
 
     private final Id routeRef;
 
     private final Collection<StopPointInJourneyPattern> pointsInSequence;
+
     private final Collection<ServiceLinkInJourneyPattern> linksInSequence;
 
     public JourneyPattern(
@@ -32,6 +32,7 @@ public class JourneyPattern extends Entity {
         this.linksInSequence = Accept.list(linksInSequence);
     }
 
+    @Override
     public String getName() {
         return name;
     }

@@ -9,7 +9,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public final class Box implements Serializable {
+public final class Box implements Serializable, Comparable<Box> {
 
     private final Point min;
 
@@ -23,8 +23,8 @@ public final class Box implements Serializable {
         this.min = points[0];
         this.max = points[1];
 
-        this.area = MostlyOnce.get(() ->
-                this.min.distanceTo(this.max.lon(this.min)).toMeters() *
+        this.area = MostlyOnce.get(
+                () -> this.min.distanceTo(this.max.lon(this.min)).toMeters() *
                         this.min.distanceTo(this.min.lon(this.max)).toMeters());
     }
 
@@ -111,16 +111,22 @@ public final class Box implements Serializable {
         int latX = (int) Math.round(latSpan / scaleLatSpan);
         int lonX = (int) Math.round(lonSpan / scaleLonSpan);
 
-        return IntStream.range(0, latX).mapToObj(i ->
-                IntStream.range(0, lonX).mapToObj(j -> {
-                    double lat = min.min().lat() + i * scaleLatSpan;
-                    double lon = min.min().lon() + j * scaleLonSpan;
-                    return Points.point(lat, lon).box(
-                            Points.point(lat + scaleLatSpan, lon + scaleLonSpan));
-                }))
+        return IntStream.range(0, latX)
+                .mapToObj(i ->
+                                  IntStream.range(0, lonX).mapToObj(j -> {
+                                      double lat = min.min().lat() + i * scaleLatSpan;
+                                      double lon = min.min().lon() + j * scaleLonSpan;
+                                      return Points.point(lat, lon).box(
+                                              Points.point(lat + scaleLatSpan, lon + scaleLonSpan));
+                                  }))
                 .flatMap(s -> s)
                 .map(box -> box.scaledTo(scale))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public int compareTo(Box box) {
+        return min().compareTo(box.min());
     }
 
     static Box box(Point min, Point max) {
@@ -139,10 +145,12 @@ public final class Box implements Serializable {
         double minLon = min.lon();
         double maxLon = max.lon();
         double maxLat = max.lat();
-        return minLat < maxLat && minLon < maxLon ? new Point[]{min, max}
-                : new Point[]{
+        if (minLat < maxLat && minLon < maxLon) {
+            return new Point[] { min, max };
+        }
+        return new Point[] {
                 Points.point(Math.min(minLat, maxLat), Math.min(minLon, maxLon)),
-                Points.point(Math.max(min.lat(), max.lat()), Math.max(min.lon(), max.lon()))
+                Points.point(Math.max(minLat, maxLat), Math.max(minLon, maxLon))
         };
     }
 }

@@ -1,6 +1,8 @@
 package stopnorway.database;
 
 import org.junit.jupiter.api.Test;
+import stopnorway.data.Operator;
+import stopnorway.data.ServiceLeg;
 import stopnorway.entur.LinkSequenceProjection;
 import stopnorway.entur.ScheduledStopPoint;
 import stopnorway.entur.ServiceLink;
@@ -13,18 +15,19 @@ class ServiceLegTest {
 
     @Test
     void test_overlap() {
-        Id fromId = new Id(Operator.RUT, ScheduledStopPoint.class, "123", 1);
-        Id toId = new Id(Operator.RUT, ScheduledStopPoint.class, "234", 1);
+        Id fromId = new Id(Operator.RUT, ScheduledStopPoint.class, "123");
+        Id toId = new Id(Operator.RUT, ScheduledStopPoint.class, "234");
         LinkSequenceProjection linkSequenceProjection = new LinkSequenceProjection(
-                new Id(Operator.RUT, LinkSequenceProjection.class, "456", 1),
+                new Id(Operator.RUT, LinkSequenceProjection.class, "456"),
                 Points.point(2, 1),
                 Points.point(3, 2),
                 Points.point(1, 3));
         ServiceLeg serviceLeg = new ServiceLeg(
+                new Id(Operator.RUT, ServiceLink.class, "234"),
                 new ScheduledStopPoint(fromId, "Foo"),
                 new ScheduledStopPoint(toId, "Bar"),
                 new ServiceLink(
-                        new Id(Operator.RUT, ServiceLink.class, "345", 1),
+                        new Id(Operator.RUT, ServiceLink.class, "345"),
                         fromId,
                         toId,
                         "100.0",

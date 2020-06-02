@@ -2,8 +2,8 @@ package stopnorway;
 
 import stopnorway.database.Entity;
 import stopnorway.database.Id;
-import stopnorway.database.ServiceLeg;
-import stopnorway.database.ServicePattern;
+import stopnorway.data.ServiceLeg;
+import stopnorway.data.TripDefinition;
 import stopnorway.entur.ScheduledStopPoint;
 import stopnorway.geo.Box;
 import stopnorway.geo.Points;
@@ -20,13 +20,15 @@ public interface Database {
 
     ScheduledStopPoint getScheduledStopPoint(Id id);
 
-    <E extends Entity> Stream<E> get(Class<E> type);
-
     default Collection<ServiceLeg> getServiceLegs(Box... boxes) {
         return getServiceLegs(Arrays.asList(boxes));
     }
 
     Collection<ServiceLeg> getServiceLegs(Collection<Box> boxes);
 
-    Collection<ServicePattern> getServicePatterns(Collection<Box> boxes);
+    default Collection<TripDefinition> getServicePatterns(Box... boxes) {
+        return getTripDefinitions(Arrays.asList(boxes));
+    }
+
+    Collection<TripDefinition> getTripDefinitions(Collection<Box> boxes);
 }

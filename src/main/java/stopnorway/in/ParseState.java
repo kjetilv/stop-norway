@@ -9,7 +9,7 @@ import java.util.stream.Stream;
 
 class ParseState<E extends Entity> {
 
-    private final Map<Id, E> parsedEntities = new LinkedHashMap<>();
+    private final Map<Id, Entity> parsedEntities = new LinkedHashMap<>();
 
     private final EntityMaker<E> entityMaker;
 
@@ -43,6 +43,19 @@ class ParseState<E extends Entity> {
 
     public void reset() {
         parsedEntities.clear();
+    }
+
+    public void absorb(Map<Id, ? extends Entity> idMap) {
+        List<Entity> existing = idMap.entrySet().stream()
+                .map(e -> parsedEntities.putIfAbsent(e.getKey(), e.getValue()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        if (!existing.isEmpty()) {
+            throw new IllegalArgumentException("Already known: " + existing.stream()
+                    .map(Entity::getId)
+                    .map(String::valueOf)
+                    .collect(Collectors.joining(", ")));
+        }
     }
 
     void completeEntityBuild() {
@@ -110,14 +123,14 @@ class ParseState<E extends Entity> {
         }
     }
 
-    Map<Id, E> get() {
+    Map<Id, Entity> get() {
         return get(false);
     }
 
-    Map<Id, E> get(boolean clear) {
+    Map<Id, Entity> get(boolean clear) {
         if (activeField == null || activeId == null || fieldIds == null || fieldContents == null) {
             if (clear) {
-                Map<Id, E> copy = Map.copyOf(parsedEntities);
+                Map<Id, Entity> copy = Map.copyOf(parsedEntities);
                 parsedEntities.clear();
                 return copy;
             }
@@ -198,9 +211,9 @@ class ParseState<E extends Entity> {
     private static Map<Field, String> toStrings(Map<Field, StringBuilder> fieldStrings) {
         return fieldStrings.entrySet().stream()
                 .map(e ->
-                        new AbstractMap.SimpleEntry<>(
-                                e.getKey(),
-                                String.valueOf(e.getValue())))
+                             new AbstractMap.SimpleEntry<>(
+                                     e.getKey(),
+                                     String.valueOf(e.getValue())))
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         Map.Entry::getValue));

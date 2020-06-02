@@ -12,7 +12,7 @@ class LinkSequenceProjectionTest {
     @Test
     void test_box() {
         LinkSequenceProjection projection = new LinkSequenceProjection(
-                new Id(Operator.RUT, LinkSequenceProjection.class, "213", 1),
+                new Id(Operator.RUT, LinkSequenceProjection.class, "213"),
                 Points.point(59.1, 10.1),
                 Points.point(59.0, 10.2),
                 Points.point(58.9, 10.3));
@@ -23,7 +23,7 @@ class LinkSequenceProjectionTest {
     @Test
     void test_start() {
         LinkSequenceProjection projection = new LinkSequenceProjection(
-                new Id(Operator.RUT, LinkSequenceProjection.class, "213", 1),
+                new Id(Operator.RUT, LinkSequenceProjection.class, "213"),
                 Points.point(59.1, 10.1),
                 Points.point(59.0, 10.2),
                 Points.point(58.9, 10.3));
@@ -33,7 +33,7 @@ class LinkSequenceProjectionTest {
     @Test
     void test_end() {
         LinkSequenceProjection projection = new LinkSequenceProjection(
-                new Id(Operator.RUT, LinkSequenceProjection.class, "213", 1),
+                new Id(Operator.RUT, LinkSequenceProjection.class, "213"),
                 Points.point(59.1, 10.1),
                 Points.point(59.0, 10.2),
                 Points.point(58.9, 10.3));

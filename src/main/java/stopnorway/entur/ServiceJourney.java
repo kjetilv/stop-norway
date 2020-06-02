@@ -5,8 +5,6 @@ import stopnorway.database.Id;
 import stopnorway.util.Accept;
 
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 import java.util.function.Consumer;
 
 public class ServiceJourney extends Entity {
@@ -17,6 +15,8 @@ public class ServiceJourney extends Entity {
 
     private final Id journeyPatternRef;
 
+    private final Id lineRef;
+
     private final Collection<TimetabledPassingTime> passingTimes;
 
     public ServiceJourney(
@@ -24,12 +24,14 @@ public class ServiceJourney extends Entity {
             String transportMode,
             String name,
             Id journeyPatternRef,
+            Id lineRef,
             Collection<TimetabledPassingTime> passingTimes
     ) {
         super(id);
         this.transportMode = transportMode;
         this.name = name;
         this.journeyPatternRef = journeyPatternRef;
+        this.lineRef = lineRef;
         this.passingTimes = Accept.list(passingTimes);
     }
 
@@ -55,6 +57,10 @@ public class ServiceJourney extends Entity {
 
     public Collection<TimetabledPassingTime> getPassingTimes() {
         return passingTimes;
+    }
+
+    public Id getLineRef() {
+        return lineRef;
     }
 
     @Override

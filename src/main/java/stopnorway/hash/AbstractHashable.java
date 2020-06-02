@@ -34,6 +34,8 @@
 
 package stopnorway.hash;
 
+import stopnorway.util.Print;
+
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;

@@ -2,10 +2,11 @@ package stopnorway.entur;
 
 import stopnorway.database.Entity;
 import stopnorway.database.Id;
+import stopnorway.database.Ordered;
 
 import java.util.function.Consumer;
 
-abstract class SequencedRef extends Entity {
+abstract class SequencedRef extends Entity implements Ordered {
 
     private final int order;
     private final Id ref;
@@ -25,9 +26,10 @@ abstract class SequencedRef extends Entity {
 
     @Override
     protected final StringBuilder withStringBody(StringBuilder sb) {
-        return super.withStringBody(sb).append("ref: ").append(ref);
+        return super.withStringBody(sb).append("#").append(order).append(": ").append(ref);
     }
 
+    @Override
     public final int getOrder() {
         return order;
     }

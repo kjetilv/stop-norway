@@ -2,7 +2,8 @@ package stopnorway.in;
 
 import stopnorway.database.Id;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Map;
 
 public final class EntityData {
 

@@ -1,13 +1,9 @@
 package stopnorway.geo;
 
-import stopnorway.geo.Box;
-import stopnorway.geo.Sample;
 import stopnorway.util.Accept;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 import java.util.stream.Collectors;
 
 public final class Trajectory {

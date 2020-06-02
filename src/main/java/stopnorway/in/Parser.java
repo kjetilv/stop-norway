@@ -5,7 +5,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import stopnorway.database.Entity;
 import stopnorway.database.Id;
-import stopnorway.database.Operator;
 
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLStreamException;
@@ -14,6 +13,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinTask;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -21,8 +21,11 @@ import java.util.stream.Stream;
 public final class Parser {
 
     private static final Logger log = LoggerFactory.getLogger(Parser.class);
+
     private final boolean noisy;
+
     private final boolean parallel;
+
     private final Supplier<Collection<EntityParser<? extends Entity>>> parsersSupplier;
 
     public Parser(boolean parallel, Supplier<Collection<EntityParser<? extends Entity>>> parsersSupplier) {
@@ -48,45 +51,59 @@ public final class Parser {
                 HashMap::new));
     }
 
-    public Map<Id, Entity> entities(Operator... operators) {
+    public <E extends Enum<E>> Map<Id, Entity> entities(Enum<?>... operators) {
         return entities(Arrays.asList(operators));
     }
 
-    public Map<Id, Entity> entities(Collection<Operator> operators) {
+    public Map<Id, Entity> entities(Collection<Enum<?>> operators) {
         if (noisy) {
-            log.info("Processing {} operators in {}: {}",
+            log.info(
+                    "Processing {} operators in {}: {}",
                     operators.size(),
                     parallel ? "parallel" : "sequence",
                     operators.stream().map(Enum::name).collect(Collectors.joining(", ")));
         }
-        return parallel ? processParallel(operators) : processSequential(operators);
+        Stream<OperatorSource> sources = operators.stream().map(OperatorSource::create);
+        if (parallel) {
+            return processParallel(operators, sources);
+        }
+        return processSequential(operators, sources);
     }
 
-    private Map<Id, Entity> processSequential(Collection<Operator> operators) {
-        Stream<OperatorSource> operatorSourceStream = operators.stream().map(OperatorSource::create);
-        return collect(operators, operatorSourceStream.flatMap(this::process));
+    private Map<Id, Entity> processSequential(Collection<Enum<?>> operators, Stream<OperatorSource> sources) {
+        return collect(operators, sources.flatMap(this::process));
     }
 
-    private Map<Id, Entity> processParallel(Collection<Operator> operators) {
-        Stream<OperatorSource> operatorSourceStream = operators.stream().map(OperatorSource::create);
+    private Map<Id, Entity> processParallel(
+            Collection<Enum<?>> operators,
+            Stream<OperatorSource> operatorSourceStream
+    ) {
         ForkJoinPool fjp = new ForkJoinPool(
                 16,
                 ForkJoinPool.defaultForkJoinWorkerThreadFactory,
                 (t, e) -> log.error("Failed: {}", t, e),
                 false);
+        ForkJoinTask<Map<Id, Entity>> task;
         try {
-            return fjp.submit(() ->
-                    collect(operators,
-                            operatorSourceStream.parallel().flatMap(this::process))).get();
+            task = fjp.submit(
+                    () -> processSequential(operators, operatorSourceStream.parallel()));
+        } catch (Exception e) {
+            throw new IllegalStateException("Could not submit task", e);
+        }
+        try {
+            return task.get();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Interrupted", e);
         } catch (Exception e) {
-            throw new IllegalStateException("Failed", e);
+            throw new IllegalStateException("Parse failed", e);
         }
     }
 
-    private Map<Id, Entity> collect(Collection<Operator> operators, Stream<? extends Map.Entry<Id, ? extends Entity>> entries) {
+    private Map<Id, Entity> collect(
+            Collection<Enum<?>> operators,
+            Stream<? extends Map.Entry<Id, ? extends Entity>> entries
+    ) {
         Instant totalStartTime = Instant.now();
         try {
             return collect(entries);
@@ -138,7 +155,8 @@ public final class Parser {
         int byteHz = nanos > 0 ? (int) (1_000_000_000L * operatorSource.getSize() / nanos) : -1;
         int entityHz = nanos > 0 ? (int) (1_000_000_000L * entities / nanos) : -1;
 
-        log.info("Processed {} in {}: {} entities from {} bytes, {} bytes/s, {} entities/s",
+        log.info(
+                "Processed {} in {}: {} entities from {} bytes, {} bytes/s, {} entities/s",
                 operatorSource,
                 duration,
                 entities,
@@ -161,7 +179,7 @@ public final class Parser {
             OperatorSource operatorSource,
             XMLEvent event
     ) {
-        for (EntityParser<? extends Entity> parser : parsers) {
+        for (EntityParser<? extends Entity> parser: parsers) {
             if (parser.canDigest(event)) {
                 try {
                     parser.digest(event);
@@ -181,7 +199,10 @@ public final class Parser {
     }
 
     @NotNull
-    private static Stream<Set<? extends Map.Entry<Id, ? extends Entity>>> stream(Collection<EntityParser<? extends Entity>> parsers) {
+    private static Stream<Set<? extends Map.Entry<Id, ? extends Entity>>> stream(
+            Collection<EntityParser<?
+                    extends Entity>> parsers
+    ) {
         return parsers.stream()
                 .map(EntityParser::get)
                 .map(Map::entrySet);

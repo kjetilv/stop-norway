@@ -1,8 +1,5 @@
 package stopnorway.in;
 
-import stopnorway.in.EnumMatch;
-import stopnorway.in.FieldType;
-
 public enum Field implements EnumMatch {
 
     Name,
@@ -32,6 +29,8 @@ public enum Field implements EnumMatch {
     StopPointInJourneyPatternRef,
 
     JourneyPatternRef,
+
+    LineRef,
 
     DepartureTime,
 

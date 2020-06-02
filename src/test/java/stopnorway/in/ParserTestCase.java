@@ -3,6 +3,8 @@ package stopnorway.in;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import stopnorway.Database;
+import stopnorway.data.DatabaseImpl;
+import stopnorway.data.Operator;
 import stopnorway.entur.Route;
 import stopnorway.entur.RoutePoint;
 import stopnorway.entur.ScheduledStopPoint;
