@@ -47,11 +47,7 @@ public class TripDefinition extends AbstractBoxed implements Serializable, Boxed
     public String toString() {
         Collection<Map.Entry<StopPointInJourneyPattern, ScheduledStopPoint>> stopPoints = this.stopPoints;
         int size = stopPoints.size();
-        return getClass().getSimpleName() + "[" + name + " stopPoints:" +
-                (size > 6
-                        ? str(stopPoints, 3) + " (" + (size - 6) + " more)" + str(stopPoints, -3)
-                        : str(stopPoints, 0) +
-                                "]");
+        return getClass().getSimpleName() + "[" + name + " stopPoints:" + print(stopPoints, size) + "]";
     }
 
     public Collection<Map.Entry<StopPointInJourneyPattern, ScheduledStopPoint>> getStopPoints() {
@@ -82,6 +78,21 @@ public class TripDefinition extends AbstractBoxed implements Serializable, Boxed
                 .map(Map.Entry::getValue)
                 .map(Boxed::getBox)
                 .reduce(Box::combined);
+    }
+
+    @NotNull
+    private String print(Collection<Map.Entry<StopPointInJourneyPattern, ScheduledStopPoint>> stopPoints, int max) {
+        int size = stopPoints.size();
+        if (size == 0) {
+            return "N/A";
+        }
+        int half = max / 2;
+        if (size > max) {
+            return str(stopPoints, half) +
+                    " (" + (size - max) + " more)" +
+                    str(stopPoints, -half);
+        }
+        return str(stopPoints, 0);
     }
 
     @NotNull

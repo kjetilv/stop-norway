@@ -241,21 +241,6 @@ public final class DatabaseImpl extends AbstractHashable implements Database, Se
         return Optional.ofNullable(boxed.get(bo)).map(Collection::stream).stream().flatMap(s -> s);
     }
 
-    private static  <K, V> HashMap<K, Collection<V>> group(
-            Collection<V> values,
-            Function<V, K> key
-    ) {
-        return values.stream()
-                .collect(Collectors.groupingBy(
-                        key,
-                        HashMap::new,
-                        Collectors.collectingAndThen(
-                                Collectors.toList(),
-                                vals -> vals.stream()
-                                        .distinct()
-                                        .collect(Collectors.toList()))));
-    }
-
     private static <K, V> Map<K, Collection<V>> with(Map<K, Collection<V>> map, K key, V item) {
         map.computeIfAbsent(key, __ -> new HashSet<>()).add(item);
         return map;

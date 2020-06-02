@@ -8,9 +8,7 @@ import stopnorway.geo.Box;
 import stopnorway.util.Safe;
 
 import java.time.LocalTime;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -29,13 +27,12 @@ public final class ScheduledTrip extends AbstractBoxed implements Named, Compara
                 .map(ScheduledStopPoint::getId)
                 .collect(Collectors.toList());
 
-        Map<Id, ScheduledStop> scheduledStopMap = scheduledStops.stream()
-                .collect(Collectors.toMap(
-                        scheduledStop -> scheduledStop.getStopPoint().getId(),
-                        Function.identity()));
+        Map<Id, LinkedList<ScheduledStop>> groups = group(
+                scheduledStops,
+                scheduledStop -> scheduledStop.getStopPoint().getId());
 
         this.scheduledStops = scheduledStopPointRefs.stream()
-                .map(scheduledStopMap::get)
+                .map(id -> groups.get(id).removeFirst())
                 .collect(Collectors.toList());
     }
 
@@ -50,7 +47,7 @@ public final class ScheduledTrip extends AbstractBoxed implements Named, Compara
     @Override
     public String toString() {
         return getClass().getSimpleName() + "[" +
-                getName() + " @ " + getStartTime().map(LocalTime::toString).orElse("unknown") +
+                getName() + " " + getStartTime().map(LocalTime::toString).orElse("unknown") +
                 "]";
     }
 
@@ -67,5 +64,21 @@ public final class ScheduledTrip extends AbstractBoxed implements Named, Compara
 
     @Override protected Optional<Box> computeBox() {
         return tripDefinition.computeBox();
+    }
+
+    private static <K, V extends Comparable<V>> Map<K, LinkedList<V>> group(
+            Collection<V> values,
+            Function<V, K> key
+    ) {
+        return values.stream()
+                .collect(Collectors.groupingBy(
+                        key,
+                        HashMap::new,
+                        Collectors.collectingAndThen(
+                                Collectors.toCollection(LinkedList::new),
+                                vals -> {
+                                    Collections.sort(vals);
+                                    return vals;
+                                })));
     }
 }
