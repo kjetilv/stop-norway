@@ -10,25 +10,20 @@ import stopnorway.database.Id;
 import stopnorway.entur.*;
 import stopnorway.geo.Box;
 import stopnorway.geo.Scale;
-import stopnorway.hash.AbstractHashable;
-import stopnorway.util.Tuple;
 
 import java.io.Serializable;
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public final class DatabaseImpl extends AbstractHashable implements Database, Serializable {
+public final class DatabaseImpl implements Database, Serializable {
 
     private static final Logger log = LoggerFactory.getLogger(DatabaseImpl.class);
 
     private final Box box;
 
     private final Scale scale;
-
-    private final Map<Id, Entity> entities;
 
     private final Map<Class<? extends Entity>, Map<Id, ? extends Entity>> typedEntities;
 
@@ -42,20 +37,22 @@ public final class DatabaseImpl extends AbstractHashable implements Database, Se
 
     private final List<ScheduledTrip> scheduledTrips;
 
-    public DatabaseImpl(Map<Id, Entity> entities, Scale scale) {
+    public DatabaseImpl(Collection<Entity> entities, Scale scale) {
         this(null, entities, scale);
     }
 
-    public DatabaseImpl(Box box, Map<Id, Entity> entities, Scale scale) {
+    public DatabaseImpl(Box box, Collection<Entity> entities, Scale scale) {
         this.box = box == null ? NORWAY : box;
-        this.entities = Objects.requireNonNull(entities, "entities");
         this.scale = Objects.requireNonNull(scale, "scale");
+
+        Objects.requireNonNull(entities, "entities");
 
         Map<Class<? extends Entity>, Map<Id, Entity>> typedEntities = new HashMap<>();
         entities.forEach(
-                (id, entity) ->
-                        typedEntities.computeIfAbsent(entity.getClass(), type -> new HashMap<>())
-                                .put(id, entity));
+                entity -> typedEntities.computeIfAbsent(
+                        entity.getClass(),
+                        type -> new HashMap<>()
+                ).put(entity.getId(), entity));
         this.typedEntities = Map.copyOf(typedEntities);
 
         log.info("{} builds from {} entities", this, entities.size());
@@ -94,11 +91,6 @@ public final class DatabaseImpl extends AbstractHashable implements Database, Se
     }
 
     @Override
-    public void hashTo(Consumer<byte[]> h) {
-        hash(h, entities.keySet());
-    }
-
-    @Override
     public ScheduledStopPoint getScheduledStopPoint(Id id) {
         return getEntity(ScheduledStopPoint.class, id);
     }
@@ -121,11 +113,6 @@ public final class DatabaseImpl extends AbstractHashable implements Database, Se
                 .filter(tripDefinition ->
                                 overlapping(boxes, tripDefinition))
                 .collect(Collectors.toList());
-    }
-
-    @Override
-    protected StringBuilder withStringBody(StringBuilder sb) {
-        return sb.append("ids: ").append(entities.size()).append(" scale: ").append(scale);
     }
 
     private ScheduledTrip scheduledTrip(ServiceJourney serviceJourney) {
@@ -181,7 +168,7 @@ public final class DatabaseImpl extends AbstractHashable implements Database, Se
             Id id
     ) {
         if (id.is(type)) {
-            Entity obj = entities.get(id);
+            Entity obj = typedEntities.get(type).get(id);
             if (obj == null) {
                 return null;
             }
@@ -244,9 +231,5 @@ public final class DatabaseImpl extends AbstractHashable implements Database, Se
     private static <K, V> Map<K, Collection<V>> with(Map<K, Collection<V>> map, K key, V item) {
         map.computeIfAbsent(key, __ -> new HashSet<>()).add(item);
         return map;
-    }
-
-    private static Tuple<ScheduledStopPoint> getFromTo(ServiceLeg serviceLeg) {
-        return new Tuple<>(serviceLeg.getFrom(), serviceLeg.getTo());
     }
 }

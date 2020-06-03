@@ -38,6 +38,6 @@ public final class Scale implements Serializable {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[lat 1:" + lat + " lon 1:" + lon + "]";
+        return getClass().getSimpleName() + "[lat=1:" + lat + " lon=1:" + lon + "]";
     }
 }

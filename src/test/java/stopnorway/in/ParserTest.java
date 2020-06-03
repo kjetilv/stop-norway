@@ -19,6 +19,12 @@ class ParserTest extends ParserTestCase {
     }
 
     @Test
+    public void serviceLinksAll() {
+        Database run = run();
+
+    }
+
+    @Test
     public void serviceLinksFlaambanen() {
         Database run = run(Operator.FLB);
 

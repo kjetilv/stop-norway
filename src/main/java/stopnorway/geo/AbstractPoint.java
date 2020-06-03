@@ -11,7 +11,7 @@ public abstract class AbstractPoint implements Point {
 
     static final Distance DEGREE_LON = Distance.of(110_572_833, MM);
 
-    private static final int R = 6371;
+    private static final Distance R = Distance.of(6_371_008_800L, MM);
 
     @Override
     public boolean equals(Object o) {
@@ -38,7 +38,7 @@ public abstract class AbstractPoint implements Point {
         double dlambda = toRadians(point.lon() - lon());
         double a = pow(sin(dphi / 2), 2) + cos(phi1) * cos(phi2) * pow(sin(dlambda / 2), 2);
         double c = 2 * atan2(sqrt(a), sqrt(1 - a));
-        return Distance.of(R * c * 1000.D, Unit.M);
+        return Distance.of(R.toMillis() * c, Unit.MM);
     }
 
     @Override

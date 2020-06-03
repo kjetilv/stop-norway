@@ -89,9 +89,9 @@ public final class EntityParser<E extends Entity> {
                 Sublist matchingSublist = endMatch(this.sublists, endElement);
                 if (matchingSublist != null && matchingSublist == state.getActiveSublist()) {
                     EntityParser<?> listParser = subParsers.get(matchingSublist);
-                    Map<Id, ? extends Entity> idMap = listParser.get(true);
-                    state.absorb(idMap);
-                    state.completeList(matchingSublist, idMap.values());
+                    Collection<Entity> subEntities = listParser.get(true);
+                    state.absorb(subEntities);
+                    state.completeList(matchingSublist, subEntities);
                     listParser.reset();
                 }
                 return;
@@ -158,11 +158,11 @@ public final class EntityParser<E extends Entity> {
         return getClass().getSimpleName() + "[" + simpleName + "/" + Arrays.toString(fields) + "]";
     }
 
-    public Map<Id, Entity> get() {
+    public Collection<Entity> get() {
         return get(false);
     }
 
-    public Map<Id, Entity> get(boolean reset) {
+    public Collection<Entity> get(boolean reset) {
         return state.get(reset);
     }
 

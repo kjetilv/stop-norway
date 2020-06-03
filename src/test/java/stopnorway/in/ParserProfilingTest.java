@@ -25,7 +25,7 @@ class ParserProfilingTest extends ParserTestCase {
 
     @Test
     void parse_prof_once() {
-        Database entities = run(1, 0, Operator.RUT);
+        Database entities = run(1, 0);
         assertThat(entities).isNotNull();
     }
 
@@ -45,7 +45,7 @@ class ParserProfilingTest extends ParserTestCase {
     void parse_ssp() {
         Parser parser = new Parser(false, true, EntityParsers::all);
 
-        Map<Id, Entity> entities = parser.entities(Operator.values());
+        Collection<Entity> entities = parser.entities(Operator.values());
 
         assertThat(entities).isNotEmpty();
 
@@ -54,9 +54,9 @@ class ParserProfilingTest extends ParserTestCase {
 
         System.out.println("Scheduled stop points: ");
         System.out.println("  " +
-                entities.keySet().stream()
-                        .filter(id ->
-                                id.getType().equals(SCHEDULED_STOP_POINT_TYPE))
+                entities.stream()
+                        .filter(entity ->
+                                entity.getId().getType().equals(SCHEDULED_STOP_POINT_TYPE))
                         .count());
 
         System.out.println("Service links: ");
@@ -100,7 +100,7 @@ class ParserProfilingTest extends ParserTestCase {
     @Test
     void parse_playground() {
         Parser parser = new Parser(false, true, EntityParsers::all);
-        Map<Id, Entity> entities = parser.entities(Operator.RUT);
+        Collection<Entity> entities = parser.entities(Operator.RUT);
 
         ScheduledStopPoint akerBrygge = scheduledStopPoints(entities)
                 .filter(scheduledStopPoint ->
@@ -127,7 +127,7 @@ class ParserProfilingTest extends ParserTestCase {
     @Test
     void parse_database() {
         Parser parser = new Parser(false, true, EntityParsers::all);
-        Map<Id, Entity> entities = parser.entities(Operator.RUT);
+        Collection<Entity> entities = parser.entities(Operator.RUT);
         Database database = new DatabaseImpl(entities, Scale.DEFAULT);
 
         Collection<ServiceLeg> legs = database.getServiceLegs(

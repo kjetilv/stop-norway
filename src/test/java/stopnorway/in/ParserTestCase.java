@@ -5,16 +5,16 @@ import org.slf4j.LoggerFactory;
 import stopnorway.Database;
 import stopnorway.data.DatabaseImpl;
 import stopnorway.data.Operator;
+import stopnorway.database.Entity;
 import stopnorway.entur.Route;
 import stopnorway.entur.RoutePoint;
 import stopnorway.entur.ScheduledStopPoint;
 import stopnorway.entur.ServiceLink;
-import stopnorway.database.*;
 import stopnorway.geo.Scale;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Map;
+import java.util.Collection;
 import java.util.stream.Stream;
 
 public class ParserTestCase {
@@ -32,16 +32,16 @@ public class ParserTestCase {
     }
 
     protected Database run(int times, int warmup, Operator... operators) {
-        Map<Id, Entity> map = null;
+        Collection<Entity> entities = null;
         Duration total = Duration.ZERO;
         for (int i = 0; i < times; i++) {
             Parser parser = new Parser(
                     false,
-                    times > 1 && operators.length > 1,
-                    EntityParsers::all);
+                    true,
+                    () -> EntityParsers.all());
 
             Instant time = Instant.now();
-            map = parser.entities(operators);
+            entities = parser.entities(operators.length == 0 ? Operator.values() : operators);
             Duration dur = Duration.between(time, Instant.now());
             if (i >= warmup) {
                 total = total.plus(dur);
@@ -49,32 +49,32 @@ public class ParserTestCase {
             log.info("Run #{}: {}, avg {}", i + 1, dur, i >= warmup ? avg(total, i + 1, warmup) : "...");
         }
         log.info("Avg: {}", avg(total, times, warmup));
-        return new DatabaseImpl(map, Scale.DEFAULT);
+        return new DatabaseImpl(entities, Scale.DEFAULT);
     }
 
-    protected Stream<ScheduledStopPoint> scheduledStopPoints(Map<Id, Entity> entities2) {
-        return entities2.values().stream()
+    protected Stream<ScheduledStopPoint> scheduledStopPoints(Collection<Entity> entities2) {
+        return entities2.stream()
                 .filter(entity ->
                         entity.getId().getType().equals(ParserTestCase.SCHEDULED_STOP_POINT_TYPE))
                 .map(ScheduledStopPoint.class::cast);
     }
 
-    protected Stream<ServiceLink> serviceLinks(Map<Id, Entity> entities2) {
-        return entities2.values().stream()
+    protected Stream<ServiceLink> serviceLinks(Collection<Entity> entities2) {
+        return entities2.stream()
                 .filter(entity ->
                         entity.getId().getType().equals(SERVICE_LINK_TYPE))
                 .map(ServiceLink.class::cast);
     }
 
-    protected Stream<RoutePoint> routePoints(Map<Id, Entity> entities2) {
-        return entities2.values().stream()
+    protected Stream<RoutePoint> routePoints(Collection<Entity> entities2) {
+        return entities2.stream()
                 .filter(entity ->
                         entity.getId().getType().equals(ROUTE_POINT_TYPE))
                 .map(RoutePoint.class::cast);
     }
 
-    protected Stream<Route> routes(Map<Id, Entity> entities2) {
-        return entities2.values().stream()
+    protected Stream<Route> routes(Collection<Entity> entities2) {
+        return entities2.stream()
                 .filter(entity ->
                         entity.getId().getType().equals(Route.class.getSimpleName()))
                 .map(Route.class::cast);

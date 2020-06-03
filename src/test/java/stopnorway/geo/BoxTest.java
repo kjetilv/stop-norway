@@ -24,7 +24,7 @@ class BoxTest {
         Point p1 = Points.point(59.00, 10.00);
         Point p2 = Points.point(59.01, 10.00);
         assertThat(p1.box(p2).height())
-                .isEqualTo(Distance.of(1_111.949, Unit.M));
+                .isEqualTo(Distance.of(1_111.950, Unit.M));
     }
 
     @Test
@@ -32,7 +32,7 @@ class BoxTest {
         Point p1 = Points.point(59.00, 10.00);
         Point p2 = Points.point(59.00, 10.02);
         assertThat(p1.box(p2).width())
-                .isEqualTo(Distance.of(1_145.392, Unit.M));
+                .isEqualTo(Distance.of(1_145.393, Unit.M));
     }
 
     @Test

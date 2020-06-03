@@ -1,10 +1,8 @@
 package stopnorway.in;
 
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import stopnorway.database.Entity;
-import stopnorway.database.Id;
 
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLStreamException;
@@ -12,8 +10,9 @@ import javax.xml.stream.events.XMLEvent;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.ForkJoinTask;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BinaryOperator;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -28,11 +27,11 @@ public final class Parser {
 
     private final Supplier<Collection<EntityParser<? extends Entity>>> parsersSupplier;
 
-    public Parser(boolean parallel, Supplier<Collection<EntityParser<? extends Entity>>> parsersSupplier) {
-        this(false, parallel, parsersSupplier);
-    }
-
-    public Parser(boolean quiet, boolean parallel, Supplier<Collection<EntityParser<? extends Entity>>> supplier) {
+    public Parser(
+            boolean quiet,
+            boolean parallel,
+            Supplier<Collection<EntityParser<? extends Entity>>> supplier
+    ) {
         this.noisy = !quiet;
         this.parallel = parallel;
         this.parsersSupplier = supplier;
@@ -43,19 +42,11 @@ public final class Parser {
         return getClass().getSimpleName() + "[parallel:" + parallel + "]";
     }
 
-    public static Map<Id, Entity> collect(Stream<? extends Map.Entry<Id, ? extends Entity>> entryStream) {
-        return entryStream.collect(Collectors.toMap(
-                Map.Entry::getKey,
-                Map.Entry::getValue,
-                Parser::idCheck,
-                HashMap::new));
-    }
-
-    public <E extends Enum<E>> Map<Id, Entity> entities(Enum<?>... operators) {
+    public Collection<Entity> entities(Enum<?>... operators) {
         return entities(Arrays.asList(operators));
     }
 
-    public Map<Id, Entity> entities(Collection<Enum<?>> operators) {
+    public Collection<Entity> entities(Collection<Enum<?>> operators) {
         if (noisy) {
             log.info(
                     "Processing {} operators in {}: {}",
@@ -63,92 +54,96 @@ public final class Parser {
                     parallel ? "parallel" : "sequence",
                     operators.stream().map(Enum::name).collect(Collectors.joining(", ")));
         }
-        Stream<OperatorSource> sources = operators.stream().map(OperatorSource::create);
-        if (parallel) {
-            return processParallel(operators, sources);
-        }
-        return processSequential(operators, sources);
-    }
-
-    private Map<Id, Entity> processSequential(Collection<Enum<?>> operators, Stream<OperatorSource> sources) {
-        return collect(operators, sources.flatMap(this::process));
-    }
-
-    private Map<Id, Entity> processParallel(
-            Collection<Enum<?>> operators,
-            Stream<OperatorSource> operatorSourceStream
-    ) {
-        ForkJoinPool fjp = new ForkJoinPool(
-                16,
-                ForkJoinPool.defaultForkJoinWorkerThreadFactory,
-                (t, e) -> log.error("Failed: {}", t, e),
-                false);
-        ForkJoinTask<Map<Id, Entity>> task;
+        Instant start = Instant.now();
         try {
-            task = fjp.submit(
-                    () -> processSequential(operators, operatorSourceStream.parallel()));
-        } catch (Exception e) {
-            throw new IllegalStateException("Could not submit task", e);
-        }
-        try {
-            return task.get();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("Interrupted", e);
-        } catch (Exception e) {
-            throw new IllegalStateException("Parse failed", e);
-        }
-    }
-
-    private Map<Id, Entity> collect(
-            Collection<Enum<?>> operators,
-            Stream<? extends Map.Entry<Id, ? extends Entity>> entries
-    ) {
-        Instant totalStartTime = Instant.now();
-        try {
-            return collect(entries);
+            Stream<OperatorSource> sources = operators.stream().flatMap(OperatorSource::create);
+            if (parallel) {
+                ExecutorService executorService = executorService();
+                try {
+                    return sources.map(
+                            source -> executorService.submit(
+                                    () -> process(source)))
+                            .map(this::get)
+                            .flatMap(Collection::stream)
+                            .collect(Collectors.toList());
+                } finally {
+                    List<Runnable> runnables = executorService.shutdownNow();
+                    if (!runnables.isEmpty()) {
+                        log.error("{} runnables still active: {}", runnables.size(), runnables);
+                    }
+                }
+            }
+            return sources.map(this::process).flatMap(Collection::stream).collect(Collectors.toList());
         } finally {
             if (noisy) {
-                Duration time = Duration.between(totalStartTime, Instant.now());
-                long totalSize =
-                        operators.stream().map(OperatorSource::create).mapToLong(OperatorSource::getSize).sum();
-                log.info("Processed {} operators in {}, total {} bytes", operators.size(), time, totalSize);
+                Duration time = Duration.between(start, Instant.now());
+                log.info("Processed in {}", time);
             }
         }
     }
 
-    private Stream<? extends Map.Entry<Id, ? extends Entity>> process(OperatorSource operatorSource) {
+    private ExecutorService executorService() {
+        AtomicInteger count = new AtomicInteger();
+        int cpus = Runtime.getRuntime().availableProcessors();
+        return new ThreadPoolExecutor(
+                cpus,
+                cpus * 2,
+                30, TimeUnit.SECONDS,
+                new ArrayBlockingQueue<>(256),
+                r -> new Thread(r, "exec#" + count.getAndIncrement()),
+                new ThreadPoolExecutor.CallerRunsPolicy());
+    }
+
+    private <T> T get(Future<T> mapFuture) {
+        try {
+            return mapFuture.get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted: " + mapFuture, e);
+        } catch (ExecutionException e) {
+            throw new IllegalStateException("Failed: " + mapFuture, e);
+        }
+    }
+
+    private <K, V> Map<K, V> reduceMaps(Stream<Map<K, V>> maps) {
+        return maps.reduce(reduceMap()).orElseGet(Collections::emptyMap);
+    }
+
+    private <K, V> BinaryOperator<Map<K, V>> reduceMap() {
+        return (m1, m2) -> {
+            m1.putAll(m2);
+            return m1;
+        };
+    }
+
+    private Collection<Entity> process(OperatorSource operatorSource) {
         if (noisy) {
             log.info("Processing {}...", operatorSource);
         }
-        return parse(operatorSource, this.parsersSupplier.get());
-    }
-
-    private Stream<? extends Map.Entry<Id, ? extends Entity>> parse(
-            OperatorSource operatorSource,
-            Collection<EntityParser<? extends Entity>> parsers
-    ) {
         Instant startTime = noisy ? Instant.now() : null;
+        Collection<EntityParser<? extends Entity>> parsers = parsersSupplier.get();
         try {
-            update(operatorSource, parsers);
-            return stream(parsers).flatMap(Collection::stream);
+            XMLEventReader eventReader = operatorSource.eventReader();
+            while (eventReader.hasNext()) {
+                XMLEvent event = event(eventReader);
+                process(parsers, operatorSource, event);
+            }
+            return parsers.stream()
+                    .map(EntityParser::get)
+                    .flatMap(Collection::stream)
+                    .collect(Collectors.toList());
         } catch (Exception e) {
-            throw new IllegalStateException
-                    (this + " failed to update " + parsers.size() + " parsers for " + operatorSource, e);
+            throw new IllegalStateException(
+                    this + " failed to update " + parsers.size() + " parsers for " + operatorSource, e);
         } finally {
             if (noisy) {
-                logResults(
-                        operatorSource,
-                        parsers,
-                        Duration.between(startTime, Instant.now()));
+                logResults(operatorSource, parsers, Duration.between(startTime, Instant.now()));
             }
         }
     }
 
     private void logResults(
-            OperatorSource operatorSource,
-            Collection<EntityParser<? extends Entity>> parsers,
-            Duration duration
+            OperatorSource operatorSource, Collection<EntityParser<? extends Entity>> parsers, Duration duration
     ) {
         long entities = parsers.stream().mapToLong(parser -> parser.get().size()).sum();
         long nanos = duration.toNanos();
@@ -163,15 +158,6 @@ public final class Parser {
                 operatorSource.getSize(),
                 byteHz,
                 entityHz);
-    }
-
-    private void update(OperatorSource operatorSource, Collection<EntityParser<? extends Entity>> parsers) {
-        operatorSource.eventReaders().forEach(eventReader -> {
-            while (eventReader.hasNext()) {
-                XMLEvent event = event(eventReader);
-                process(parsers, operatorSource, event);
-            }
-        });
     }
 
     private void process(
@@ -189,23 +175,6 @@ public final class Parser {
                 }
             }
         }
-    }
-
-    private static Entity idCheck(Entity e1, Entity e2) {
-        if (e1.equals(e2)) {
-            return e1;
-        }
-        throw new IllegalStateException(e1 + " != " + e2);
-    }
-
-    @NotNull
-    private static Stream<Set<? extends Map.Entry<Id, ? extends Entity>>> stream(
-            Collection<EntityParser<?
-                    extends Entity>> parsers
-    ) {
-        return parsers.stream()
-                .map(EntityParser::get)
-                .map(Map::entrySet);
     }
 
     private static XMLEvent event(XMLEventReader reader) {

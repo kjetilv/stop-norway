@@ -9,7 +9,7 @@ import java.util.stream.Stream;
 
 class ParseState<E extends Entity> {
 
-    private final Map<Id, Entity> parsedEntities = new LinkedHashMap<>();
+    private final Collection<Entity> parsedEntities = new LinkedList<>();
 
     private final EntityMaker<E> entityMaker;
 
@@ -45,17 +45,8 @@ class ParseState<E extends Entity> {
         parsedEntities.clear();
     }
 
-    public void absorb(Map<Id, ? extends Entity> idMap) {
-        List<Entity> existing = idMap.entrySet().stream()
-                .map(e -> parsedEntities.putIfAbsent(e.getKey(), e.getValue()))
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-        if (!existing.isEmpty()) {
-            throw new IllegalArgumentException("Already known: " + existing.stream()
-                    .map(Entity::getId)
-                    .map(String::valueOf)
-                    .collect(Collectors.joining(", ")));
-        }
+    public void absorb(Collection<Entity> idMap) {
+        this.parsedEntities.addAll(idMap);
     }
 
     void completeEntityBuild() {
@@ -66,7 +57,7 @@ class ParseState<E extends Entity> {
         try {
             EntityData data = buildAndClear();
             entity = entityMaker.entity(data);
-            parsedEntities.put(activeId, entity);
+            parsedEntities.add(entity);
         } finally {
             activeId = null;
         }
@@ -123,14 +114,14 @@ class ParseState<E extends Entity> {
         }
     }
 
-    Map<Id, Entity> get() {
+    Collection<Entity> get() {
         return get(false);
     }
 
-    Map<Id, Entity> get(boolean clear) {
+    Collection<Entity> get(boolean clear) {
         if (activeField == null || activeId == null || fieldIds == null || fieldContents == null) {
             if (clear) {
-                Map<Id, Entity> copy = Map.copyOf(parsedEntities);
+                List<Entity> copy = List.copyOf(parsedEntities);
                 parsedEntities.clear();
                 return copy;
             }
