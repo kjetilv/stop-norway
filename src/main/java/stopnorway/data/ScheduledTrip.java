@@ -18,12 +18,17 @@ public final class ScheduledTrip extends AbstractBoxed implements Named, Compara
 
     private final Collection<ScheduledStop> scheduledStops;
 
-    public ScheduledTrip(Id serviceJourneyId, TripDefinition tripDefinition, Collection<ScheduledStop> scheduledStops) {
+    public ScheduledTrip(
+            Id serviceJourneyId,
+            TripDefinition tripDefinition,
+            Collection<ScheduledStop> scheduledStops
+    ) {
         super(serviceJourneyId);
         this.tripDefinition = tripDefinition;
 
         Collection<Id> scheduledStopPointRefs = tripDefinition.getStopPoints().stream()
                 .map(Map.Entry::getValue)
+                .filter(Objects::nonNull)
                 .map(ScheduledStopPoint::getId)
                 .collect(Collectors.toList());
 

@@ -9,6 +9,7 @@ import stopnorway.database.Entity;
 import stopnorway.database.Id;
 import stopnorway.entur.*;
 import stopnorway.geo.Box;
+import stopnorway.geo.Points;
 import stopnorway.geo.Scale;
 
 import java.io.Serializable;
@@ -25,64 +26,44 @@ public final class DatabaseImpl implements Database, Serializable {
 
     private final Scale scale;
 
-    private final Map<Class<? extends Entity>, Map<Id, ? extends Entity>> typedEntities;
-
-    private final Map<Box, Collection<ServiceLeg>> boxedServiceLegs;
-
-    private final Map<Box, Collection<TripDefinition>> boxedTripDefinitions;
-
-    private final List<ServiceLeg> serviceLegs;
+    private final Map<Class<? extends Entity>, Map<Id, Entity>> typedEntities;
 
     private final Map<Id, TripDefinition> tripDefinitions;
 
-    private final List<ScheduledTrip> scheduledTrips;
+    private final Map<Box, Collection<TripDefinition>> boxedTripDefinitions;
 
-    public DatabaseImpl(Collection<Entity> entities, Scale scale) {
+    private final Map<TripDefinition, Collection<ServiceJourney>> scheduledTrips;
+
+    public DatabaseImpl(Stream<Entity> entities, Scale scale) {
         this(null, entities, scale);
     }
 
-    public DatabaseImpl(Box box, Collection<Entity> entities, Scale scale) {
-        this.box = box == null ? NORWAY : box;
+    public DatabaseImpl(Box box, Stream<Entity> entities, Scale scale) {
+        this.box = box == null ? Points.NORWAY_BOX : box;
         this.scale = Objects.requireNonNull(scale, "scale");
+        this.typedEntities = map(Objects.requireNonNull(entities, "entities"));
 
-        Objects.requireNonNull(entities, "entities");
-
-        Map<Class<? extends Entity>, Map<Id, Entity>> typedEntities = new HashMap<>();
-        entities.forEach(
-                entity -> typedEntities.computeIfAbsent(
-                        entity.getClass(),
-                        type -> new HashMap<>()
-                ).put(entity.getId(), entity));
-        this.typedEntities = Map.copyOf(typedEntities);
-
-        log.info("{} builds from {} entities", this, entities.size());
-
-        this.serviceLegs = stream(ServiceLink.class)
-                .map(this::serviceLeg)
-                .collect(Collectors.toList());
-        log.info("{} collected {} service legs", this, serviceLegs.size());
-
-        this.boxedServiceLegs = new HashMap<>();
-        this.serviceLegs.forEach(leg -> leg.scaledBoxes(scale)
-                .forEach(scaledBox -> with(this.boxedServiceLegs, scaledBox, leg)));
+        log.info("{} built from {} entities",
+                 this, this.typedEntities.values().stream().mapToLong(Map::size).sum());
 
         this.tripDefinitions = stream(JourneyPattern.class)
-                .map(this::servicePattern)
+                .map(this::tripDefinitions)
                 .collect(Collectors.toMap(
                         TripDefinition::getJourneyPatternId,
-                        Function.identity()
-                ));
+                        Function.identity()));
+
         this.boxedTripDefinitions = new HashMap<>();
         this.tripDefinitions.values()
                 .forEach(def -> def.scaledBoxes(scale)
-                        .forEach(scaledBox -> with(this.boxedTripDefinitions, scaledBox, def)));
+                        .forEach(scaledBox -> add(this.boxedTripDefinitions, scaledBox, def)));
 
-        this.scheduledTrips = stream(ServiceJourney.class)
-                .map(this::scheduledTrip)
-                .sorted()
-                .collect(Collectors.toList());
+        this.scheduledTrips = getEntities(ServiceJourney.class)
+                .collect(Collectors.groupingBy(
+                        serviceJourney -> tripDefinitions.get(serviceJourney.getJourneyPatternRef()),
+                        HashMap::new,
+                        Collectors.toCollection(ArrayList::new)));
 
-        log.info("{} indexed {} service legs in {} boxes", this, serviceLegs.size(), boxedTripDefinitions.size());
+        log.info("{} indexed {} trips in {} boxes", this, tripDefinitions.size(), boxedTripDefinitions.size());
     }
 
     @Override
@@ -91,34 +72,56 @@ public final class DatabaseImpl implements Database, Serializable {
     }
 
     @Override
-    public ScheduledStopPoint getScheduledStopPoint(Id id) {
-        return getEntity(ScheduledStopPoint.class, id);
-    }
-
-    @Override
-    public Collection<ServiceLeg> getServiceLegs(Collection<Box> boxes) {
-        return scaled(boxes)
-                .flatMap(scaledBox ->
-                                 boxed(this.boxedServiceLegs, scaledBox))
-                .filter(serviceLeg ->
-                                overlapping(boxes, serviceLeg))
+    public Collection<TripDefinition> getTripDefinitions(Collection<Box> boxes) {
+        return streamTripDefinitions(boxes)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public Collection<TripDefinition> getTripDefinitions(Collection<Box> boxes) {
+    public Collection<ScheduledTrip> getScheduledTrips(Collection<Box> boxes) {
+        return streamTripDefinitions(boxes)
+                .flatMap(tripDefinition -> scheduledTrips.get(tripDefinition).stream())
+                .map(serviceJourney ->
+                             scheduledTrip(serviceJourney, tripDefinitions::get))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() +
+                "[" + box +
+                " /" + scale +
+                " typedEntities=" +
+                typedEntities.entrySet().stream()
+                        .map(e -> e.getKey().getSimpleName() + ":" + e.getValue().size())
+                        .collect(Collectors.joining(", ")) +
+                "]";
+    }
+
+    @NotNull
+    private Map<Class<? extends Entity>, Map<Id, Entity>> map(Stream<Entity> entities) {
+        return entities.collect(Collectors.groupingBy(
+                Entity::getClass,
+                HashMap::new,
+                Collectors.toMap(
+                        Entity::getId,
+                        o -> o
+                )));
+    }
+
+    @NotNull
+    private Stream<TripDefinition> streamTripDefinitions(Collection<Box> boxes) {
         return scaled(boxes)
                 .flatMap(scaledBox ->
                                  boxed(this.boxedTripDefinitions, scaledBox))
                 .filter(tripDefinition ->
-                                overlapping(boxes, tripDefinition))
-                .collect(Collectors.toList());
+                                overlapping(boxes, tripDefinition));
     }
 
-    private ScheduledTrip scheduledTrip(ServiceJourney serviceJourney) {
+    private ScheduledTrip scheduledTrip(ServiceJourney serviceJourney, Function<Id, TripDefinition> patterns) {
         return new ScheduledTrip(
                 serviceJourney.getId(),
-                tripDefinitions.get(serviceJourney.getJourneyPatternRef()),
+                patterns.apply(serviceJourney.getJourneyPatternRef()),
                 serviceJourney.getPassingTimes().stream()
                         .map(this::scheduledStop)
                         .collect(Collectors.toList()));
@@ -140,33 +143,24 @@ public final class DatabaseImpl implements Database, Serializable {
         return boxes.stream().anyMatch(boxable::overlaps);
     }
 
-    @NotNull
-    private ServiceLeg serviceLeg(ServiceLink serviceLink) {
-        return new ServiceLeg(
-                serviceLink.getId(),
-                getScheduledStopPoint(serviceLink.getFromPoint()),
-                getScheduledStopPoint(serviceLink.getToPoint()),
-                serviceLink);
-    }
-
     private <E extends Entity> Stream<E> stream(Class<E> type) {
         return list(type).stream();
     }
 
     private <E extends Entity> Collection<E> list(Class<E> type) {
-        return getEntities(type).values();
+        return getEntityMap(type).values();
     }
 
-    @SuppressWarnings("unchecked") private <E extends Entity> Map<Id, E> getEntities(
-            Class<E> type
-    ) {
+    private <E extends Entity> Stream<E> getEntities(Class<E> type) {
+        return typedEntities.get(type).values().stream().map(type::cast);
+    }
+
+    @SuppressWarnings("unchecked")
+    private <E extends Entity> Map<Id, E> getEntityMap(Class<E> type) {
         return (Map<Id, E>) typedEntities.get(type);
     }
 
-    private <T extends Entity> T getEntity(
-            Class<T> type,
-            Id id
-    ) {
+    private <E extends Entity> E getEntity(Class<E> type, Id id) {
         if (id.is(type)) {
             Entity obj = typedEntities.get(type).get(id);
             if (obj == null) {
@@ -180,7 +174,7 @@ public final class DatabaseImpl implements Database, Serializable {
         throw new IllegalArgumentException("Not a " + type + " id: " + id);
     }
 
-    private TripDefinition servicePattern(JourneyPattern journeyPattern) {
+    private TripDefinition tripDefinitions(JourneyPattern journeyPattern) {
         return new TripDefinition(
                 journeyPattern.getId(),
                 journeyPattern.getName(),
@@ -212,8 +206,8 @@ public final class DatabaseImpl implements Database, Serializable {
                     sequencedInJourneyPattern,
                     serviceLink == null ? null : new ServiceLeg(
                             serviceLink.getId(),
-                            getScheduledStopPoint(serviceLink.getFromPoint()),
-                            getScheduledStopPoint(serviceLink.getToPoint()),
+                            getEntity(ScheduledStopPoint.class, serviceLink.getFromPoint()),
+                            getEntity(ScheduledStopPoint.class, serviceLink.getToPoint()),
                             serviceLink,
                             sequencedInJourneyPattern.getOrder()));
         }).collect(Collectors.toList());
@@ -228,8 +222,7 @@ public final class DatabaseImpl implements Database, Serializable {
         return Optional.ofNullable(boxed.get(bo)).map(Collection::stream).stream().flatMap(s -> s);
     }
 
-    private static <K, V> Map<K, Collection<V>> with(Map<K, Collection<V>> map, K key, V item) {
+    private static <K, V> void add(Map<K, Collection<V>> map, K key, V item) {
         map.computeIfAbsent(key, __ -> new HashSet<>()).add(item);
-        return map;
     }
 }

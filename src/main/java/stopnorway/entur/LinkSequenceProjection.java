@@ -22,7 +22,7 @@ public final class LinkSequenceProjection extends Entity {
         this(id, Arrays.asList(points));
     }
 
-    public LinkSequenceProjection(Id id, List<Point> trajectory) {
+    public LinkSequenceProjection(Id id, Collection<Point> trajectory) {
         super(id);
         this.trajectory = Accept.list(trajectory);
         this.box = MostlyOnce.get(() ->

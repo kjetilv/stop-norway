@@ -13,17 +13,21 @@ public final class EntityData {
 
     private final Map<Field, String> contents;
 
+    private final Map<Attr, String> attributes;
+
     private final Map<Sublist, Collection<?>> sublists;
 
     public EntityData(
             Id id,
             Map<Field, Id> ids,
             Map<Field, String> contents,
+            Map<Attr, String> attributes,
             Map<Sublist, Collection<?>> sublists
     ) {
         this.id = id;
         this.ids = ids;
         this.contents = contents;
+        this.attributes = attributes;
         this.sublists = sublists;
     }
 
@@ -39,8 +43,19 @@ public final class EntityData {
         return contents.get(field);
     }
 
+    public String getAttribute(Attr attr) {
+        return attributes.get(attr);
+    }
+
+    public int getIntAttribute(Attr attr) {
+        return toInt(attr, attributes.get(attr));
+    }
+
     public int getIntContent(Field field) {
-        String value = getContent(field);
+        return toInt(field, getContent(field));
+    }
+
+    private int toInt(Enum<?> field, String value) {
         if (value == null) {
             throw new IllegalStateException("No int value: " + field);
         }

@@ -7,18 +7,14 @@ import java.util.Collections;
 import java.util.List;
 
 public interface Point extends Serializable, Comparable<Point> {
-    static List<Point> sequence(String str) {
-        if (str == null || str.isBlank()) {
-            return Collections.emptyList();
-        }
-        return DoublePoint.parse(str.split("\\s+"));
-    }
 
     default Box box(Point max) {
         return Box.box(this, max);
     }
 
-    Box scaledBox(Scale scale);
+    default Box scaledBox(Scale scale) {
+        return downTo(scale).box(upTo(scale));
+    }
 
     Point downTo(Scale scale);
 
@@ -36,13 +32,18 @@ public interface Point extends Serializable, Comparable<Point> {
 
     Point translate(Translation translation);
 
-    Box squareBox(Distance sides);
+    default Box squareBox(Distance sideLength) {
+        Point max = this
+                .translate(Translation.towards(Direction.NORTH, sideLength))
+                .translate(Translation.towards(Direction.EAST, sideLength));
+        return this.box(max);
+    }
 
     @Override
-    default int compareTo(@NotNull Point point) {
-        int lat = Double.compare(lat(), point.lat());
-        return lat != 0
-                ? lat
+    default int compareTo(Point point) {
+        int latCompared = Double.compare(lat(), point.lat());
+        return latCompared != 0
+                ? latCompared
                 : Double.compare(lon(), point.lon());
     }
 }

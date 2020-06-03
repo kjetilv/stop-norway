@@ -1,5 +1,6 @@
 package stopnorway.in;
 
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import stopnorway.database.Entity;
@@ -7,17 +8,18 @@ import stopnorway.database.Entity;
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.XMLEvent;
-import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BinaryOperator;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public final class Parser {
+public final class Parser implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(Parser.class);
 
@@ -25,16 +27,28 @@ public final class Parser {
 
     private final boolean parallel;
 
+    private final OperatorSources operatorSources;
+
     private final Supplier<Collection<EntityParser<? extends Entity>>> parsersSupplier;
+
+    private final Function<Integer, ExecutorService> executorServiceProvider;
+
+    ScheduledExecutorService backgroundLogging;
 
     public Parser(
             boolean quiet,
             boolean parallel,
-            Supplier<Collection<EntityParser<? extends Entity>>> supplier
+            OperatorSources operatorSources,
+            Supplier<Collection<EntityParser<? extends Entity>>> parsersSupplier,
+            Function<Integer, ExecutorService> executorServiceProvider
     ) {
         this.noisy = !quiet;
         this.parallel = parallel;
-        this.parsersSupplier = supplier;
+        this.operatorSources = operatorSources;
+        this.parsersSupplier = parsersSupplier;
+        this.executorServiceProvider = executorServiceProvider;
+        this.backgroundLogging =
+                Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "parse-progress"));
     }
 
     @Override
@@ -42,11 +56,11 @@ public final class Parser {
         return getClass().getSimpleName() + "[parallel:" + parallel + "]";
     }
 
-    public Collection<Entity> entities(Enum<?>... operators) {
+    public Stream<Entity> entities(Enum<?>... operators) {
         return entities(Arrays.asList(operators));
     }
 
-    public Collection<Entity> entities(Collection<Enum<?>> operators) {
+    public Stream<Entity> entities(Collection<Enum<?>> operators) {
         if (noisy) {
             log.info(
                     "Processing {} operators in {}: {}",
@@ -54,73 +68,67 @@ public final class Parser {
                     parallel ? "parallel" : "sequence",
                     operators.stream().map(Enum::name).collect(Collectors.joining(", ")));
         }
-        Instant start = Instant.now();
+        Collection<OperatorSource> sources = operators.stream()
+                .flatMap(operatorSources::get)
+                .collect(Collectors.toList());
+        Progress progress = new Progress(sources, operators, Instant.now());
         try {
-            Stream<OperatorSource> sources = operators.stream().flatMap(OperatorSource::create);
             if (parallel) {
-                ExecutorService executorService = executorService();
-                try {
-                    return sources.map(
-                            source -> executorService.submit(
-                                    () -> process(source)))
-                            .map(this::get)
-                            .flatMap(Collection::stream)
-                            .collect(Collectors.toList());
-                } finally {
-                    List<Runnable> runnables = executorService.shutdownNow();
-                    if (!runnables.isEmpty()) {
-                        log.error("{} runnables still active: {}", runnables.size(), runnables);
-                    }
-                }
+                return submittedFutures(sources, progress).stream()
+                        .map(this::awaitFuture)
+                        .flatMap(Collection::stream);
             }
-            return sources.map(this::process).flatMap(Collection::stream).collect(Collectors.toList());
+            return sources.stream()
+                    .map(source -> process(source, progress))
+                    .flatMap(Collection::stream);
         } finally {
-            if (noisy) {
-                Duration time = Duration.between(start, Instant.now());
-                log.info("Processed in {}", time);
-            }
+            logInBackground(progress);
         }
     }
 
-    private ExecutorService executorService() {
-        AtomicInteger count = new AtomicInteger();
-        int cpus = Runtime.getRuntime().availableProcessors();
-        return new ThreadPoolExecutor(
-                cpus,
-                cpus * 2,
-                30, TimeUnit.SECONDS,
-                new ArrayBlockingQueue<>(256),
-                r -> new Thread(r, "exec#" + count.getAndIncrement()),
-                new ThreadPoolExecutor.CallerRunsPolicy());
+    @Override
+    public void close() {
+        backgroundLogging.shutdown();
     }
 
-    private <T> T get(Future<T> mapFuture) {
+    private void logInBackground(Progress progress) {
+        backgroundLogging.scheduleAtFixedRate(
+                () -> {
+                    if (progress.live()) {
+                        log.info(progress.summary(Instant.now()));
+                    }
+                },
+                2, 8, TimeUnit.SECONDS);
+    }
+
+    @NotNull
+    private List<Future<Collection<Entity>>> submittedFutures(
+            Collection<OperatorSource> sources,
+            Progress progress
+    ) {
+        ExecutorService executorService = executorServiceProvider.apply(sources.size());
         try {
-            return mapFuture.get();
+            return sources.stream()
+                    .map(source -> executorService
+                            .submit(() -> process(source, progress)))
+                    .collect(Collectors.toList());
+        } finally {
+            executorService.shutdown();
+        }
+    }
+
+    private <T> T awaitFuture(Future<T> future) {
+        try {
+            return future.get();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new IllegalStateException("Interrupted: " + mapFuture, e);
+            throw new IllegalStateException("Interrupted: " + future, e);
         } catch (ExecutionException e) {
-            throw new IllegalStateException("Failed: " + mapFuture, e);
+            throw new IllegalStateException("Failed: " + future, e);
         }
     }
 
-    private <K, V> Map<K, V> reduceMaps(Stream<Map<K, V>> maps) {
-        return maps.reduce(reduceMap()).orElseGet(Collections::emptyMap);
-    }
-
-    private <K, V> BinaryOperator<Map<K, V>> reduceMap() {
-        return (m1, m2) -> {
-            m1.putAll(m2);
-            return m1;
-        };
-    }
-
-    private Collection<Entity> process(OperatorSource operatorSource) {
-        if (noisy) {
-            log.info("Processing {}...", operatorSource);
-        }
-        Instant startTime = noisy ? Instant.now() : null;
+    private Collection<Entity> process(OperatorSource operatorSource, Progress progress) {
         Collection<EntityParser<? extends Entity>> parsers = parsersSupplier.get();
         try {
             XMLEventReader eventReader = operatorSource.eventReader();
@@ -128,36 +136,15 @@ public final class Parser {
                 XMLEvent event = event(eventReader);
                 process(parsers, operatorSource, event);
             }
-            return parsers.stream()
+            Collection<Entity> entities = parsers.stream()
                     .map(EntityParser::get)
                     .flatMap(Collection::stream)
                     .collect(Collectors.toList());
+            return progress.recorded(operatorSource, entities);
         } catch (Exception e) {
             throw new IllegalStateException(
                     this + " failed to update " + parsers.size() + " parsers for " + operatorSource, e);
-        } finally {
-            if (noisy) {
-                logResults(operatorSource, parsers, Duration.between(startTime, Instant.now()));
-            }
         }
-    }
-
-    private void logResults(
-            OperatorSource operatorSource, Collection<EntityParser<? extends Entity>> parsers, Duration duration
-    ) {
-        long entities = parsers.stream().mapToLong(parser -> parser.get().size()).sum();
-        long nanos = duration.toNanos();
-        int byteHz = nanos > 0 ? (int) (1_000_000_000L * operatorSource.getSize() / nanos) : -1;
-        int entityHz = nanos > 0 ? (int) (1_000_000_000L * entities / nanos) : -1;
-
-        log.info(
-                "Processed {} in {}: {} entities from {} bytes, {} bytes/s, {} entities/s",
-                operatorSource,
-                duration,
-                entities,
-                operatorSource.getSize(),
-                byteHz,
-                entityHz);
     }
 
     private void process(
@@ -166,13 +153,11 @@ public final class Parser {
             XMLEvent event
     ) {
         for (EntityParser<? extends Entity> parser: parsers) {
-            if (parser.canDigest(event)) {
-                try {
-                    parser.digest(event);
-                } catch (Exception e) {
-                    throw new IllegalStateException(
-                            this + " failed to feed " + event + " for " + operatorSource + " to " + parser, e);
-                }
+            try {
+                parser.digest(event);
+            } catch (Exception e) {
+                throw new IllegalStateException(
+                        this + " failed to feed " + event + " for " + operatorSource + " to " + parser, e);
             }
         }
     }
@@ -184,4 +169,5 @@ public final class Parser {
             throw new IllegalStateException("Failed to read", e);
         }
     }
+
 }

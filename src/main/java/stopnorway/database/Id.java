@@ -7,6 +7,8 @@ import java.util.function.Consumer;
 
 public final class Id extends AbstractHashable {
 
+    private static final int ID_MARK = 3;
+
     private final String operator;
 
     private final String type;
@@ -55,6 +57,15 @@ public final class Id extends AbstractHashable {
 
     public boolean is(Class<? extends Entity> type) {
         return this.type.equals(type.getSimpleName());
+    }
+
+    public static Id parse(String attribute) {
+        int length = attribute.length();
+        int secondMark = attribute.indexOf(':', ID_MARK + 1);
+        return new Id(
+                attribute.substring(0, ID_MARK),
+                attribute.substring(ID_MARK + 1, secondMark),
+                attribute.substring(secondMark + 1, length));
     }
 
     @Override

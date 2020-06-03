@@ -9,8 +9,6 @@ import java.util.stream.Stream;
 
 class ParseState<E extends Entity> {
 
-    private final Collection<Entity> parsedEntities = new LinkedList<>();
-
     private final EntityMaker<E> entityMaker;
 
     private Field activeField;
@@ -23,7 +21,11 @@ class ParseState<E extends Entity> {
 
     private Map<Field, StringBuilder> fieldContents;
 
+    private Map<Attr, String> attributeContents;
+
     private Map<Sublist, Collection<Collection<?>>> sublists;
+
+    private Collection<Entity> parsedEntities;
 
     ParseState(EntityMaker<E> entityMaker) {
 
@@ -33,7 +35,7 @@ class ParseState<E extends Entity> {
     @Override
     public String toString() {
         return getClass().getSimpleName() + "[" + Stream.of(
-                Stream.of(parsedEntities.size() + " parsed"),
+                Stream.of(parsedEntities(false).size() + " parsed"),
                 activeField == null ? Stream.<String>empty() : Stream.of("activeField: " + activeField),
                 activeId == null ? Stream.<String>empty() : Stream.of("activeId: " + activeId),
                 fieldIds == null ? Stream.<String>empty() : Stream.of("ids: " + fieldIds),
@@ -42,22 +44,36 @@ class ParseState<E extends Entity> {
     }
 
     public void reset() {
-        parsedEntities.clear();
+        parsedEntities = null;
     }
 
     public void absorb(Collection<Entity> idMap) {
-        this.parsedEntities.addAll(idMap);
+        parsedEntities(true).addAll(idMap);
+    }
+
+    public int count() {
+        return parsedEntities(false).size();
+    }
+
+    public void setAttribute(Attr attribute, String value) {
+        if (attributeContents == null) {
+            attributeContents = new EnumMap<>(Attr.class);
+        }
+        attributeContents.put(attribute, value);
+    }
+
+    public boolean isBuildingList(Sublist sublist) {
+        return this.activeSublist != null && this.activeSublist == sublist;
     }
 
     void completeEntityBuild() {
         if (activeId == null) {
             throw new IllegalStateException(this + " has no active id");
         }
-        E entity;
         try {
-            EntityData data = buildAndClear();
-            entity = entityMaker.entity(data);
-            parsedEntities.add(entity);
+            EntityData data = extractEntityData();
+            E entity = entityMaker.entity(data);
+            parsedEntities(true).add(entity);
         } finally {
             activeId = null;
         }
@@ -100,7 +116,7 @@ class ParseState<E extends Entity> {
         return activeId != null;
     }
 
-    boolean isLookingForField(FieldType type) {
+    boolean isLookingForField(DataType type) {
         return activeField != null && activeField.getFieldType() == type;
     }
 
@@ -114,18 +130,18 @@ class ParseState<E extends Entity> {
         }
     }
 
-    Collection<Entity> get() {
-        return get(false);
-    }
-
     Collection<Entity> get(boolean clear) {
-        if (activeField == null || activeId == null || fieldIds == null || fieldContents == null) {
+        if (activeField == null ||
+                activeId == null ||
+                fieldIds == null ||
+                fieldContents == null ||
+                attributeContents == null
+        ) {
+            Collection<Entity> entities = parsedEntities(false);
             if (clear) {
-                List<Entity> copy = List.copyOf(parsedEntities);
-                parsedEntities.clear();
-                return copy;
+                reset();
             }
-            return parsedEntities;
+            return entities;
         }
         throw new IllegalStateException(this + " is active");
     }
@@ -160,14 +176,25 @@ class ParseState<E extends Entity> {
                         existing == null ? new StringBuilder(contents) : existing.append(contents));
     }
 
-    private EntityData buildAndClear() {
+    private Collection<Entity> parsedEntities(boolean req) {
+        return this.parsedEntities != null ? parsedEntities
+                : req ? (this.parsedEntities = new LinkedList<>())
+                        : Collections.emptyList();
+    }
+
+    private EntityData extractEntityData() {
         try {
             return new EntityData(
                     this.activeId,
-                    this.fieldIds == null ? Collections.emptyMap() : Map.copyOf(this.fieldIds),
+                    this.fieldIds == null
+                            ? Collections.emptyMap()
+                            : this.fieldIds,
                     this.fieldContents == null
                             ? Collections.emptyMap()
                             : toStrings(this.fieldContents),
+                    this.attributeContents == null
+                            ? Collections.emptyMap()
+                            : attributeContents,
                     this.sublists == null
                             ? Collections.emptyMap()
                             : toMap(this.sublists));
@@ -177,36 +204,35 @@ class ParseState<E extends Entity> {
             sublists = null;
             fieldIds = null;
             fieldContents = null;
+            attributeContents = null;
         }
     }
 
-    @SuppressWarnings("unchecked")
     private static Map<Sublist, Collection<?>> toMap(Map<Sublist, Collection<Collection<?>>> sublists) {
-        return sublists.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, ParseState::unpack));
+        Map<Sublist, Collection<?>> map = new HashMap<>();
+        for (Map.Entry<Sublist, Collection<Collection<?>>> entry: sublists.entrySet()) {
+            Sublist sublist = entry.getKey();
+            Collection<Collection<?>> subs = entry.getValue();
+            int sum = 0;
+            for (Collection<?> sub: subs) {
+                sum += sub.size();
+            }
+            ArrayList<Object> collection = new ArrayList<>(sum);
+            for (Collection<?> sub: subs) {
+                collection.addAll(sub);
+            }
+            map.put(sublist, collection);
+        }
+        return map;
     }
 
-    private static Collection<?> unpack(Map.Entry<Sublist, Collection<Collection<?>>> e) {
-        Collection<Collection<?>> collections = e.getValue();
-        if (collections.isEmpty()) {
-            return Collections.emptyList();
+    private static <E extends Enum<E>> Map<E, String> toStrings(Map<E, StringBuilder> fieldStrings) {
+        Map<E, String> strings = new HashMap<>();
+        for (Map.Entry<E, StringBuilder> entry: fieldStrings.entrySet()) {
+            E key = entry.getKey();
+            StringBuilder stringBuilder = entry.getValue();
+            strings.put(key, stringBuilder.toString());
         }
-        if (collections.size() == 1) {
-            return List.copyOf(collections.iterator().next());
-        }
-        return collections.stream()
-                .flatMap(Collection::stream)
-                .collect(Collectors.toList());
-    }
-
-    private static Map<Field, String> toStrings(Map<Field, StringBuilder> fieldStrings) {
-        return fieldStrings.entrySet().stream()
-                .map(e ->
-                             new AbstractMap.SimpleEntry<>(
-                                     e.getKey(),
-                                     String.valueOf(e.getValue())))
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue));
+        return strings;
     }
 }

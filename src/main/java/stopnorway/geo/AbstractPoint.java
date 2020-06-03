@@ -42,7 +42,25 @@ public abstract class AbstractPoint implements Point {
     }
 
     @Override
-    public Box scaledBox(Scale scale) {
-        return downTo(scale).box(upTo(scale));
+    public final Point translate(Translation translation) {
+        long l = translation.getDistance().toMillis();
+        Distance latTranslation = Distance.of(translation.getDirection().lat().apply(l), MM);
+        Distance lonTranslation = Distance.of(translation.getDirection().lon().apply(l), MM);
+
+        return translate(latTranslation, lonTranslation);
+    }
+
+    protected abstract Point translate(Distance latTranslation, Distance lonTranslation);
+
+    protected double getDeltaLon(Distance lonTranslation) {
+        double latRadians = toRadians(lat());
+
+        Distance degreeLonMeters =
+                Distance.of(DEGREE_LON.toMeters() * cos(latRadians), Unit.M);
+        return 1.0d * lonTranslation.toMillis() / degreeLonMeters.toMillis();
+    }
+
+    protected double getDeltaLat(Distance latTranslation) {
+        return 1.0d * latTranslation.toMillis() / DEGREE_LAT.toMillis();
     }
 }

@@ -10,16 +10,16 @@ public class TimetabledPassingTime extends Entity {
 
     private final Id stopPointInJourneyPatternRef;
 
-    private final LocalTime departureTime;
+    private final String departureTime;
 
     public TimetabledPassingTime(Id id, Id stopPointInJourneyPatternRef, String departureTime) {
         super(id);
         this.stopPointInJourneyPatternRef = stopPointInJourneyPatternRef;
-        this.departureTime = departureTime == null || departureTime.isBlank() ? null : LocalTime.parse(departureTime);
+        this.departureTime = departureTime == null || departureTime.isBlank() ? null : departureTime;
     }
 
     public LocalTime getDepartureTime() {
-        return departureTime;
+        return departureTime == null ? null : LocalTime.parse(departureTime);
     }
 
     public Id getStopPointInJourneyPatternRef() {
@@ -29,8 +29,8 @@ public class TimetabledPassingTime extends Entity {
     @Override
     protected StringBuilder withStringBody(StringBuilder sb) {
         return super.withStringBody(sb)
-                .append("stopPointInJourneyPatternRef: ").append(stopPointInJourneyPatternRef)
-                .append("departureTime: ").append(departureTime);
+                .append("").append(stopPointInJourneyPatternRef)
+                .append(" @ ").append(departureTime);
     }
 
     @Override

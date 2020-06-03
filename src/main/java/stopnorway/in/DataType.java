@@ -1,6 +1,6 @@
 package stopnorway.in;
 
-public enum FieldType {
+public enum DataType {
 
     Content,
 

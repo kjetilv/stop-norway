@@ -10,10 +10,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.Objects;
 import java.util.zip.GZIPInputStream;
 
 public final class OperatorSource {
@@ -22,32 +19,37 @@ public final class OperatorSource {
 
     private static final XMLInputFactory xmlInputFactory = XMLInputFactory2.newFactory();
 
-    private final Enum<?> operator;
+    private final Enum<?> source;
 
     private final File file;
 
-    public OperatorSource(Enum<?> operator, File file) {
-        this.operator = operator;
-        this.file = file;
+    private final boolean zipped;
+
+    private final long length;
+
+    public OperatorSource(Enum<?> source, File file) {
+        this.source = source;
+        this.file = Objects.requireNonNull(file, "file");
+        this.length = file.length();
+        this.zipped = file.getName().endsWith(".gz");
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[" + operator + ": " + file.getName() + "]";
-    }
-
-    public long getSize() {
-        return file.length();
+        return getClass().getSimpleName() + "[" + file + "]";
     }
 
     public XMLEventReader eventReader() {
-        InputStream files = streams();
+        InputStream files = inputStream();
         return readers(files);
     }
 
-    static Stream<OperatorSource> create(Enum<?> operator) {
-        return files(operator).stream()
-                .map(file -> new OperatorSource(operator, file));
+    public Enum<?> getEnum() {
+        return source;
+    }
+
+    long getLength() {
+        return length;
     }
 
     private XMLEventReader readers(InputStream file) {
@@ -58,35 +60,14 @@ public final class OperatorSource {
         }
     }
 
-    private InputStream streams() {
+    private InputStream inputStream() {
         try {
-            return new GZIPInputStream(
-                    new BufferedInputStream(
-                            new FileInputStream(file), BUFF), BUFF);
+            InputStream in = new BufferedInputStream(new FileInputStream(file), 1024 * 1024);
+            return zipped
+                    ? new GZIPInputStream(in, BUFF)
+                    : in;
         } catch (Exception e) {
             throw new IllegalArgumentException(file.getAbsolutePath(), e);
         }
-    }
-
-    private static Collection<File> files(Enum<?> operator) {
-        File documents = new File(
-                new File(
-                        new File(System.getProperty("user.home")),
-                        "Documents"),
-                "rb_norway-aggregated-netex");
-        String[] fileNames = documents.list((dir, name) -> name.startsWith(operator.name() + "_"));
-        Stream<File> additional = fileNames == null
-                ? Stream.empty()
-                : Arrays.stream(fileNames).map(fileName -> new File(documents, fileName));
-        return Stream.concat(
-                Stream.of(new File(
-                        documents,
-                        sharedData(operator))),
-                additional
-        ).collect(Collectors.toList());
-    }
-
-    private static String sharedData(Enum<?> operator) {
-        return String.format("_%s_shared_data.xml.gz", operator.name());
     }
 }

@@ -2,6 +2,7 @@ package stopnorway.database;
 
 import stopnorway.hash.AbstractHashable;
 
+import java.util.Objects;
 import java.util.function.Consumer;
 
 public abstract class Entity extends AbstractHashable {
@@ -10,7 +11,7 @@ public abstract class Entity extends AbstractHashable {
 
     protected Entity(Id id) {
 
-        this.id = id;
+        this.id = Objects.requireNonNull(id, "id");
     }
 
     @Override

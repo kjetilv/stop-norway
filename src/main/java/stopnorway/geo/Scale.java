@@ -7,13 +7,22 @@ public final class Scale implements Serializable {
 
     public static final Scale DEFAULT = new Scale(100, 50);
 
+    public static final Scale INTEGER = new Scale(0, 0);
+
     private final int lat;
 
     private final int lon;
 
-    public Scale(int last, int lon) {
-        this.lat = last;
+    private Scale(int lat, int lon) {
+        this.lat = lat;
         this.lon = lon;
+    }
+
+    public static Scale of(int lat, int lon) {
+        if (lat > 0 && lon > 0) {
+            return new Scale(lat, lon);
+        }
+        throw new IllegalArgumentException("Bad scale: " + lat + "/" + lon);
     }
 
     public int getLat() {

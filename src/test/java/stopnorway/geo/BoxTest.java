@@ -45,7 +45,7 @@ class BoxTest {
     @Test
     void scale() {
         Box box = Points.point(59.134, 10.123).box(Points.point(60.234, 12.234));
-        Box scaled = box.scaledTo(new Scale(100, 50));
+        Box scaled = box.scaledTo(Scale.of(100, 50));
         assertThat(scaled).isEqualTo(
                 Points.point(59.13, 10.12).box(Points.point(60.24, 12.24)));
     }

@@ -34,23 +34,21 @@ public enum Field implements EnumMatch {
 
     DepartureTime,
 
-    posList,
+    posList;
 
-    order;
-
-    private final FieldType fieldType;
+    private final DataType fieldType;
 
     Field() {
         this(null);
     }
 
-    Field(FieldType fieldType) {
+    Field(DataType fieldType) {
         this.fieldType = fieldType != null ? fieldType
-                : name().endsWith("Ref") ? FieldType.Ref
-                : FieldType.Content;
+                : name().endsWith("Ref") ? DataType.Ref
+                : DataType.Content;
     }
 
-    public FieldType getFieldType() {
+    public DataType getFieldType() {
         return fieldType;
     }
 }

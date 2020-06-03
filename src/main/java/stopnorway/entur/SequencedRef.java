@@ -6,7 +6,7 @@ import stopnorway.database.Ordered;
 
 import java.util.function.Consumer;
 
-abstract class SequencedRef extends Entity implements Ordered {
+public abstract class SequencedRef extends Entity implements Ordered {
 
     private final int order;
     private final Id ref;
