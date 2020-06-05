@@ -67,10 +67,10 @@ public final class Progress {
         }
         long secs = now.getEpochSecond() - start;
         long bytesHz = bytesCount / secs;
-        return getClass().getSimpleName() + "[" + bytesPerc + "% " +
+        return bytesPerc + "% " +
                 sourcesCount + "/" + sources + " sources, " +
-                bytesCount / MB + "/" + mbs + "mb/" + bytesHz / MB + "mb/s, " +
-                enityCount / K + "K entities/" + enityCount / secs + "/s <- " +
-                enumCount + "/" + enums + " operators]";
+                bytesCount / MB + "/" + mbs + "mb /" + bytesHz / MB + "mb/s, " +
+                enityCount / K + "K entities /" + enityCount / secs + "/s <- " +
+                enumCount + "/" + enums + " operators";
     }
 }

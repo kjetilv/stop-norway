@@ -19,11 +19,11 @@ class ParseState<E extends Entity> {
 
     private Map<Field, Id> fieldIds;
 
-    private Map<Field, StringBuilder> fieldContents;
+    private Map<Field, String> fieldContents;
 
     private Map<Attr, String> attributeContents;
 
-    private Map<Sublist, Collection<Collection<?>>> sublists;
+    private Map<Sublist, Collection<?>> sublists;
 
     private Collection<Entity> parsedEntities;
 
@@ -90,14 +90,19 @@ class ParseState<E extends Entity> {
         activeSublist = sublist;
     }
 
+    @SuppressWarnings("unchecked")
     <S> void completeList(Sublist sublist, Collection<S> elements) {
         if (this.activeSublist == sublist) {
             if (sublists == null) {
                 sublists = new EnumMap<>(Sublist.class);
             }
-            sublists.computeIfAbsent(
-                    activeSublist,
-                    __ -> new ArrayList<>()).add(elements);
+            sublists.compute(activeSublist, (sublist1, objects) -> {
+                if (objects == null) {
+                    return elements instanceof LinkedList<?> ? elements : new LinkedList<>(elements);
+                }
+                ((Collection<S>) objects).addAll(elements);
+                return objects;
+            });
             this.activeSublist = null;
         } else {
             throw new IllegalStateException(this + " is not bulding " + sublist);
@@ -167,13 +172,15 @@ class ParseState<E extends Entity> {
     }
 
     void setFieldContents(Field activeField, String contents) {
+        if (contents == null || contents.isBlank()) {
+            return;
+        }
         if (fieldContents == null) {
             fieldContents = new EnumMap<>(Field.class);
         }
         fieldContents.compute(
                 activeField,
-                (__, existing) ->
-                        existing == null ? new StringBuilder(contents) : existing.append(contents));
+                (field, s) -> s == null ? contents : s + contents);
     }
 
     private Collection<Entity> parsedEntities(boolean req) {
@@ -191,13 +198,13 @@ class ParseState<E extends Entity> {
                             : this.fieldIds,
                     this.fieldContents == null
                             ? Collections.emptyMap()
-                            : toStrings(this.fieldContents),
+                            : this.fieldContents,
                     this.attributeContents == null
                             ? Collections.emptyMap()
                             : attributeContents,
                     this.sublists == null
                             ? Collections.emptyMap()
-                            : toMap(this.sublists));
+                            : this.sublists);
         } catch (Exception e) {
             throw new IllegalStateException(this + " could not build", e);
         } finally {
@@ -206,33 +213,5 @@ class ParseState<E extends Entity> {
             fieldContents = null;
             attributeContents = null;
         }
-    }
-
-    private static Map<Sublist, Collection<?>> toMap(Map<Sublist, Collection<Collection<?>>> sublists) {
-        Map<Sublist, Collection<?>> map = new HashMap<>();
-        for (Map.Entry<Sublist, Collection<Collection<?>>> entry: sublists.entrySet()) {
-            Sublist sublist = entry.getKey();
-            Collection<Collection<?>> subs = entry.getValue();
-            int sum = 0;
-            for (Collection<?> sub: subs) {
-                sum += sub.size();
-            }
-            ArrayList<Object> collection = new ArrayList<>(sum);
-            for (Collection<?> sub: subs) {
-                collection.addAll(sub);
-            }
-            map.put(sublist, collection);
-        }
-        return map;
-    }
-
-    private static <E extends Enum<E>> Map<E, String> toStrings(Map<E, StringBuilder> fieldStrings) {
-        Map<E, String> strings = new HashMap<>();
-        for (Map.Entry<E, StringBuilder> entry: fieldStrings.entrySet()) {
-            E key = entry.getKey();
-            StringBuilder stringBuilder = entry.getValue();
-            strings.put(key, stringBuilder.toString());
-        }
-        return strings;
     }
 }
