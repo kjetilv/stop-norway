@@ -9,7 +9,6 @@ import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.XMLEvent;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -27,6 +26,8 @@ public final class Parser implements AutoCloseable {
 
     private final boolean parallel;
 
+    private final Collection<? extends Enum<?>> operators;
+
     private final OperatorSources operatorSources;
 
     private final Supplier<Collection<EntityParser<? extends Entity>>> parsersSupplier;
@@ -35,15 +36,17 @@ public final class Parser implements AutoCloseable {
 
     ScheduledExecutorService backgroundLogging;
 
-    public Parser(
+    Parser(
             boolean quiet,
             boolean parallel,
+            Collection<? extends Enum<?>> operators,
             OperatorSources operatorSources,
             Supplier<Collection<EntityParser<? extends Entity>>> parsersSupplier,
             Function<Integer, ExecutorService> executorServiceProvider
     ) {
         this.noisy = !quiet;
         this.parallel = parallel;
+        this.operators = operators;
         this.operatorSources = operatorSources;
         this.parsersSupplier = parsersSupplier;
         this.executorServiceProvider = executorServiceProvider;
@@ -56,17 +59,19 @@ public final class Parser implements AutoCloseable {
         return getClass().getSimpleName() + "[parallel:" + parallel + "]";
     }
 
-    public Stream<Entity> entities(Enum<?>... operators) {
-        return entities(Arrays.asList(operators));
-    }
-
-    public Stream<Entity> entities(Collection<Enum<?>> operators) {
+    public Stream<Entity> entities() {
         if (noisy) {
             log.info(
                     "Processing {} operators in {}: {}",
-                    operators.size(),
-                    parallel ? "parallel" : "sequence",
-                    operators.stream().map(Enum::name).collect(Collectors.joining(", ")));
+                    operators.isEmpty()
+                            ? "all"
+                            : operators.size(),
+                    parallel
+                            ? "parallel"
+                            : "sequence",
+                    operators.isEmpty()
+                            ? "<ALL>"
+                            : operators.stream().map(Enum::name).collect(Collectors.joining(", ")));
         }
         Collection<OperatorSource> sources = operators.stream()
                 .flatMap(operatorSources::get)

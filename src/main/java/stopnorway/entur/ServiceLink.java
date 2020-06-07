@@ -5,7 +5,6 @@ import stopnorway.database.Entity;
 import stopnorway.database.Id;
 import stopnorway.geo.Point;
 import stopnorway.util.Accept;
-import stopnorway.util.MostlyOnce;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -13,7 +12,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 public final class ServiceLink extends Entity {
 
@@ -21,27 +19,36 @@ public final class ServiceLink extends Entity {
 
     private final Id toPoint;
 
-    private final float distance;
+    private final String distance;
+
+    private final double d;
 
     private final Collection<LinkSequenceProjection> projections;
 
-    private final Supplier<Optional<Point>> start;
+    private final Point start;
 
-    private final Supplier<Optional<Point>> end;
+    private final Point end;
 
     public ServiceLink(Id id, Id fromPoint, Id toPoint, String distance, LinkSequenceProjection... projections) {
         this(id, fromPoint, toPoint, distance, Arrays.asList(projections));
     }
 
-    public ServiceLink(Id id, Id fromPoint, Id toPoint, String distance, Collection<LinkSequenceProjection> projections) {
+    public ServiceLink(
+            Id id,
+            Id fromPoint,
+            Id toPoint,
+            String distance,
+            Collection<LinkSequenceProjection> projections
+    ) {
         super(id);
         this.fromPoint = Objects.requireNonNull(fromPoint, "fromPoint");
         this.toPoint = Objects.requireNonNull(toPoint, "toPoint");
-        this.distance = distance == null ? .0F : Float.parseFloat(distance);
+        this.distance = distance;
+        this.d = this.distance == null ? .0F : Double.parseDouble(this.distance);
         this.projections = Accept.list(projections);
 
-        this.start = MostlyOnce.get(() -> getFirst(LinkSequenceProjection::getStart));
-        this.end = MostlyOnce.get(() -> getFirst(LinkSequenceProjection::getEnd));
+        this.start = getFirst(LinkSequenceProjection::getStart).orElse(null);
+        this.end = getFirst(LinkSequenceProjection::getEnd).orElse(null);
     }
 
     public Id getFromPoint() {
@@ -58,7 +65,7 @@ public final class ServiceLink extends Entity {
         hash(h, fromPoint, toPoint);
     }
 
-    public float getDistance() {
+    public String getDistance() {
         return distance;
     }
 
@@ -67,11 +74,16 @@ public final class ServiceLink extends Entity {
     }
 
     public Optional<Point> getStartPoint() {
-        return start.get();
+        return Optional.ofNullable(start);
     }
 
     public Optional<Point> getEndPoint() {
-        return end.get();
+        return Optional.ofNullable(end);
+    }
+
+    @Override
+    protected StringBuilder withStringBody(StringBuilder sb) {
+        return super.withStringBody(sb).append(fromPoint).append("->").append(toPoint);
     }
 
     @NotNull
@@ -80,10 +92,5 @@ public final class ServiceLink extends Entity {
                 .map(getStart)
                 .flatMap(Optional::stream)
                 .findFirst();
-    }
-
-    @Override
-    protected StringBuilder withStringBody(StringBuilder sb) {
-        return super.withStringBody(sb).append(fromPoint).append("->").append(toPoint);
     }
 }

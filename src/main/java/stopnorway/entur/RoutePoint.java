@@ -22,6 +22,10 @@ public final class RoutePoint extends Entity {
         hash(h, projections);
     }
 
+    public Collection<PointProjection> getProjections() {
+        return projections;
+    }
+
     @Override
     protected StringBuilder withStringBody(StringBuilder sb) {
         return super.withStringBody(sb).append(Sublist.projections).append(": ").append(

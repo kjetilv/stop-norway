@@ -18,7 +18,11 @@ public class TimetabledPassingTime extends Entity {
         this.departureTime = departureTime == null || departureTime.isBlank() ? null : departureTime;
     }
 
-    public LocalTime getDepartureTime() {
+    public String getDepartureTime() {
+        return departureTime;
+    }
+
+    public LocalTime getParsedDepartureTime() {
         return departureTime == null ? null : LocalTime.parse(departureTime);
     }
 
@@ -27,15 +31,15 @@ public class TimetabledPassingTime extends Entity {
     }
 
     @Override
+    public void hashTo(Consumer<byte[]> h) {
+        super.hashTo(h);
+        hash(h, stopPointInJourneyPatternRef);
+    }
+
+    @Override
     protected StringBuilder withStringBody(StringBuilder sb) {
         return super.withStringBody(sb)
                 .append("").append(stopPointInJourneyPatternRef)
                 .append(" @ ").append(departureTime);
-    }
-
-    @Override
-    public void hashTo(Consumer<byte[]> h) {
-        super.hashTo(h);
-        hash(h, stopPointInJourneyPatternRef);
     }
 }

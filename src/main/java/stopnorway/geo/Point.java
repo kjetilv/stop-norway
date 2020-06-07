@@ -1,10 +1,6 @@
 package stopnorway.geo;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.io.Serializable;
-import java.util.Collections;
-import java.util.List;
 
 public interface Point extends Serializable, Comparable<Point> {
 

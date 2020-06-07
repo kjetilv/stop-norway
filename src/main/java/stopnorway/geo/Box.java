@@ -1,11 +1,8 @@
 package stopnorway.geo;
 
-import stopnorway.util.MostlyOnce;
-
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Objects;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -15,7 +12,7 @@ public final class Box implements Serializable, Comparable<Box> {
 
     private final Point max;
 
-    private final Supplier<Double> area;
+    private final double area;
 
     private Box(Point min, Point max) {
 
@@ -23,9 +20,9 @@ public final class Box implements Serializable, Comparable<Box> {
         this.min = points[0];
         this.max = points[1];
 
-        this.area = MostlyOnce.get(
-                () -> this.min.distanceTo(this.max.lon(this.min)).toMeters() *
-                        this.min.distanceTo(this.min.lon(this.max)).toMeters());
+        this.area =
+                this.min.distanceTo(this.max.lon(this.min)).toMeters() *
+                this.min.distanceTo(this.min.lon(this.max)).toMeters();
     }
 
     public Point max() {
@@ -66,7 +63,7 @@ public final class Box implements Serializable, Comparable<Box> {
     }
 
     public double areaSqMeters() {
-        return area.get();
+        return area;
     }
 
     public boolean overlaps(Box box) {

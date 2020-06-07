@@ -16,6 +16,7 @@ dependencies {
 
     implementation("ch.qos.logback:logback-classic:1.2.3")
     implementation("org.codehaus.woodstox:stax2-api:4.2.1")
+    implementation("com.esotericsoftware:kryo:5.0.0-RC6")
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.6.2")
     testImplementation("org.assertj:assertj-core:3.16.1")

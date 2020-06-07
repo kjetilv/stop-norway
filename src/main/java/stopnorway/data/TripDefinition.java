@@ -1,7 +1,6 @@
 package stopnorway.data;
 
-import org.jetbrains.annotations.NotNull;
-import stopnorway.database.AbstractBoxed;
+import stopnorway.database.AbstractIdentified;
 import stopnorway.database.Boxed;
 import stopnorway.database.Id;
 import stopnorway.database.Named;
@@ -14,13 +13,12 @@ import stopnorway.util.Accept;
 
 import java.io.Serializable;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class TripDefinition extends AbstractBoxed implements Serializable, Boxed, Named {
+public class TripDefinition extends AbstractIdentified implements Serializable, Boxed, Named {
 
     private final Id journeyPatternId;
 
@@ -30,10 +28,12 @@ public class TripDefinition extends AbstractBoxed implements Serializable, Boxed
 
     private final Collection<Map.Entry<ServiceLinkInJourneyPattern, ServiceLeg>> serviceLegs;
 
+    private final Box box;
+
     public TripDefinition(
             Id journeyPatternId,
             String name,
-            List<Map.Entry<StopPointInJourneyPattern, ScheduledStopPoint>> stopPoints,
+            Collection<Map.Entry<StopPointInJourneyPattern, ScheduledStopPoint>> stopPoints,
             Collection<Map.Entry<ServiceLinkInJourneyPattern, ServiceLeg>> serviceLegs
     ) {
         super(journeyPatternId);
@@ -41,17 +41,20 @@ public class TripDefinition extends AbstractBoxed implements Serializable, Boxed
         this.name = name;
         this.stopPoints = Accept.list(stopPoints);
         this.serviceLegs = Accept.list(serviceLegs);
-    }
-
-    @Override
-    public String toString() {
-        Collection<Map.Entry<StopPointInJourneyPattern, ScheduledStopPoint>> stopPoints = this.stopPoints;
-        int size = stopPoints.size();
-        return getClass().getSimpleName() + "[" + name + " stopPoints:" + print(stopPoints, size) + "]";
+        this.box = this.serviceLegs.stream()
+                .map(Map.Entry::getValue)
+                .map(Boxed::getBox)
+                .flatMap(Optional::stream)
+                .reduce(Box::combined)
+                .orElse(null);
     }
 
     public Collection<Map.Entry<StopPointInJourneyPattern, ScheduledStopPoint>> getStopPoints() {
         return stopPoints;
+    }
+
+    public Collection<Map.Entry<ServiceLinkInJourneyPattern, ServiceLeg>> getServiceLegs() {
+        return serviceLegs;
     }
 
     public Stream<Box> scaledBoxes(Scale scale) {
@@ -68,19 +71,22 @@ public class TripDefinition extends AbstractBoxed implements Serializable, Boxed
     }
 
     @Override
+    public String toString() {
+        Collection<Map.Entry<StopPointInJourneyPattern, ScheduledStopPoint>> stopPoints = this.stopPoints;
+        int size = stopPoints.size();
+        return getClass().getSimpleName() + "[" + name + " stopPoints:" + print(stopPoints, size) + "]";
+    }
+
+    @Override
     public String getName() {
         return name;
     }
 
     @Override
-    protected Optional<Box> computeBox() {
-        return serviceLegs.stream()
-                .map(Map.Entry::getValue)
-                .map(Boxed::getBox)
-                .reduce(Box::combined);
+    public Optional<Box> getBox() {
+        return Optional.ofNullable(box);
     }
 
-    @NotNull
     private String print(Collection<Map.Entry<StopPointInJourneyPattern, ScheduledStopPoint>> stopPoints, int max) {
         int size = stopPoints.size();
         if (size == 0) {
@@ -95,7 +101,6 @@ public class TripDefinition extends AbstractBoxed implements Serializable, Boxed
         return str(stopPoints, 0);
     }
 
-    @NotNull
     private <T extends Named> String str(Collection<? extends Map.Entry<?, T>> entries, int slice) {
         Stream<? extends Map.Entry<?, T>> stream = entries.stream();
         return (slice > 0

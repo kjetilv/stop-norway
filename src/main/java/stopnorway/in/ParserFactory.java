@@ -1,13 +1,12 @@
 package stopnorway.in;
 
+import stopnorway.data.Operator;
 import stopnorway.database.Entity;
 import stopnorway.geo.Points;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -20,14 +19,22 @@ public final class ParserFactory {
 
     private final File documents;
 
-    public ParserFactory(Path zipFile) {
-        this.documents = Importer.unzipped(zipFile).toFile();
+    private final Collection<? extends Enum<?>> operators;
+
+    ParserFactory(Path documents, Enum<?>... operators) {
+        this(documents, Arrays.asList(operators));
+    }
+
+    public ParserFactory(Path documents, Collection<? extends Enum<?>> operators) {
+        this.documents = Objects.requireNonNull(documents, "documents").toFile();
+        this.operators = operators == null || operators.isEmpty() ? Set.of(Operator.values()) : Set.copyOf(operators);
     }
 
     public Parser create(boolean quiet, boolean parallel) {
         return new Parser(
                 quiet,
                 parallel,
+                operators,
                 this::operatorSources,
                 this::allEntityParsers,
                 this::executorService);
@@ -41,8 +48,8 @@ public final class ParserFactory {
         AtomicInteger count = new AtomicInteger();
         int cpus = Runtime.getRuntime().availableProcessors();
         return new ThreadPoolExecutor(
+                cpus,
                 cpus * 2,
-                cpus * 4,
                 30, TimeUnit.SECONDS,
                 new ArrayBlockingQueue<>(queue),
                 r -> new Thread(r, "xml#" + count.getAndIncrement()),

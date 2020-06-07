@@ -1,10 +1,13 @@
 package stopnorway.in;
 
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.nio.file.*;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public final class Importer {
@@ -17,7 +20,17 @@ public final class Importer {
 
     }
 
-    public static Path unzipped(Path zipFile) {
+    public static Path targetPath(Path zipFile) {
+        String fileName = zipFile.getFileName().toString();
+        String base = fileName.substring(0, fileName.length() - SUFF.length());
+        return zipFile.getParent().resolve(Path.of(base));
+    }
+
+    public static Path unzipped(Path zipFile, Enum<?>... sources) {
+        return unzipped(zipFile, Arrays.asList(sources));
+    }
+
+    public static Path unzipped(Path zipFile, Collection<? extends Enum<?>> sources) {
         String filename = zipFile.getFileName().toString();
         if (!zipFile.toFile().isFile()) {
             throw new IllegalArgumentException("Bad zip file: " + zipFile);
@@ -25,8 +38,7 @@ public final class Importer {
         if (!filename.endsWith(SUFF)) {
             throw new IllegalArgumentException("Not a zip file: " + zipFile);
         }
-        String base = filename.substring(0, filename.length() - SUFF.length());
-        Path targetPath = zipFile.getParent().resolve(Path.of(base));
+        Path targetPath = targetPath(zipFile);
         File targetDirectory = targetPath.toFile();
         if (targetDirectory.isFile()) {
             throw new IllegalArgumentException("Not a directory: " + targetPath);
@@ -41,7 +53,7 @@ public final class Importer {
             fileSystem.getRootDirectories()
                     .forEach(path -> {
                         log.info("Copying root {} to {} ...", path, targetPath);
-                        copyAll(path, targetPath);
+                        copyAll(path, targetPath, sources);
                     });
         } catch (Exception e) {
             throw new IllegalArgumentException("Failed to open " + zipFile, e);
@@ -49,12 +61,13 @@ public final class Importer {
         return targetPath;
     }
 
-    private static void copyAll(Path path, Path target) {
+    private static void copyAll(Path path, Path target, Collection<? extends Enum<?>> sources) {
         try {
             AtomicInteger counter = new AtomicInteger();
             AtomicInteger copied = new AtomicInteger();
             Files.walk(path)
                     .filter(file -> file.getFileName() != null)
+                    .filter(file -> sources.isEmpty() || sourceMatch(file, sources))
                     .filter(file -> file.getFileName().toString().endsWith(".xml"))
                     .forEach(file -> {
                         int count = counter.incrementAndGet();
@@ -67,6 +80,10 @@ public final class Importer {
             throw new IllegalArgumentException(
                     "Failed to walk " + path, e);
         }
+    }
+
+    private static boolean sourceMatch(Path file, Collection<? extends Enum<?>> sources) {
+        return sources.stream().map(Enum::name).anyMatch(file.getFileName().toString()::contains);
     }
 
     private static boolean copy(Path source, Path target, int count) {

@@ -7,33 +7,41 @@ import stopnorway.database.Named;
 import stopnorway.entur.ScheduledStopPoint;
 
 import java.time.LocalTime;
+import java.util.Objects;
 
 public final class ScheduledStop extends AbstractIdentified implements Named, Comparable<ScheduledStop> {
 
     private final ScheduledStopPoint stopPoint;
 
-    private final LocalTime localTime;
+    private final String localTime;
 
-    public ScheduledStop(Id id, ScheduledStopPoint stopPoint, LocalTime localTime) {
+    private final LocalTime parsedLocalTime;
+
+    public ScheduledStop(Id id, ScheduledStopPoint stopPoint, String localTime) {
         super(id);
-        this.stopPoint = stopPoint;
+        this.stopPoint = Objects.requireNonNull(stopPoint, "stopPoint");
         this.localTime = localTime;
+        this.parsedLocalTime = localTime == null ? null : LocalTime.parse(localTime);
     }
 
     public ScheduledStopPoint getStopPoint() {
         return stopPoint;
     }
 
-    public LocalTime getLocalTime() {
+    public String getLocalTime() {
         return localTime;
     }
 
+    public LocalTime getParsedLocalTime() {
+        return parsedLocalTime;
+    }
+
     @Override
-    public int compareTo(@NotNull ScheduledStop point) {
-        return localTime == null ? 1
-                : point.getLocalTime() == null ? -1
-                        : localTime.isBefore(point.getLocalTime()) ? -1
-                                : localTime.isAfter(point.getLocalTime()) ? 1
+    public int compareTo(@NotNull ScheduledStop stop) {
+        return parsedLocalTime == null ? 1
+                : stop.getLocalTime() == null ? -1
+                        : parsedLocalTime.isBefore(stop.getParsedLocalTime()) ? -1
+                                : parsedLocalTime.isAfter(stop.getParsedLocalTime()) ? 1
                                         : 0;
     }
 
@@ -42,7 +50,8 @@ public final class ScheduledStop extends AbstractIdentified implements Named, Co
         return stopPoint.getName();
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return getClass().getSimpleName() + "[" + getName() + " @ " + localTime + "]";
     }
 }

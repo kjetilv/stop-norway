@@ -1,8 +1,6 @@
 package stopnorway.data;
 
-import stopnorway.database.AbstractBoxed;
-import stopnorway.database.Id;
-import stopnorway.database.Ordered;
+import stopnorway.database.*;
 import stopnorway.entur.LinkSequenceProjection;
 import stopnorway.entur.ScheduledStopPoint;
 import stopnorway.entur.ServiceLink;
@@ -16,7 +14,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-public final class ServiceLeg extends AbstractBoxed implements Serializable, Ordered {
+public final class ServiceLeg extends AbstractIdentified implements Serializable, Ordered, Boxed {
 
     private final Id serviceLinkId;
 
@@ -24,27 +22,34 @@ public final class ServiceLeg extends AbstractBoxed implements Serializable, Ord
 
     private final ScheduledStopPoint to;
 
-    private final ServiceLink link;
+    private final ServiceLink serviceLink;
 
     private final Integer order;
 
-    public ServiceLeg(Id serviceLinkId, ScheduledStopPoint from, ScheduledStopPoint to, ServiceLink link) {
-        this(serviceLinkId, from, to, link, null);
+    private final Box box;
+
+    public ServiceLeg(Id serviceLinkId, ScheduledStopPoint from, ScheduledStopPoint to, ServiceLink serviceLink) {
+        this(serviceLinkId, from, to, serviceLink, null);
     }
 
     public ServiceLeg(
             Id serviceLinkId,
             ScheduledStopPoint from,
             ScheduledStopPoint to,
-            ServiceLink link,
+            ServiceLink serviceLink,
             Integer order
     ) {
         super(serviceLinkId);
         this.serviceLinkId = serviceLinkId;
         this.from = Objects.requireNonNull(from, "from");
         this.to = Objects.requireNonNull(to, "to");
-        this.link = Objects.requireNonNull(link, "link");
+        this.serviceLink = Objects.requireNonNull(serviceLink, "link");
         this.order = order;
+        this.box = this.serviceLink.getProjections().stream()
+                .map(LinkSequenceProjection::getBox)
+                .flatMap(Optional::stream)
+                .reduce(Box::combined)
+                .orElse(null);
     }
 
     public Id getServiceLinkId() {
@@ -60,19 +65,19 @@ public final class ServiceLeg extends AbstractBoxed implements Serializable, Ord
     }
 
     public Optional<Point> getStartPoint() {
-        return this.link.getStartPoint();
+        return this.serviceLink.getStartPoint();
     }
 
     public Optional<Point> getEndPoint() {
-        return this.link.getEndPoint();
+        return this.serviceLink.getEndPoint();
     }
 
     public int getOrder() {
         return Objects.requireNonNull(order, "order");
     }
 
-    public ServiceLink getLink() {
-        return link;
+    public ServiceLink getServiceLink() {
+        return serviceLink;
     }
 
     @Override
@@ -80,12 +85,12 @@ public final class ServiceLeg extends AbstractBoxed implements Serializable, Ord
         return this == o || o instanceof ServiceLeg &&
                 Objects.equals(from, ((ServiceLeg) o).from) &&
                 Objects.equals(to, ((ServiceLeg) o).to) &&
-                Objects.equals(link, ((ServiceLeg) o).link);
+                Objects.equals(serviceLink, ((ServiceLeg) o).serviceLink);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(from, to, link);
+        return Objects.hash(from, to, serviceLink);
     }
 
     @Override
@@ -93,22 +98,19 @@ public final class ServiceLeg extends AbstractBoxed implements Serializable, Ord
         return getClass().getSimpleName() +
                 "[" + (from.getName() == null ? from : from.getName()) +
                 " => " + (to.getName() == null ? to : to.getName()) +
-                ": " + link.getDistance() +
+                ": " + serviceLink.getDistance() +
                 "m]";
     }
 
-    Stream<Box> scaledBoxes(Scale scale) {
-        return link.getProjections().stream()
-                .flatMap(toScaled(scale))
-                .distinct();
+    @Override
+    public Optional<Box> getBox() {
+        return Optional.ofNullable(box);
     }
 
-    @Override
-    protected Optional<Box> computeBox() {
-        return this.link.getProjections().stream()
-                .map(LinkSequenceProjection::getBox)
-                .flatMap(Optional::stream)
-                .reduce(Box::combined);
+    Stream<Box> scaledBoxes(Scale scale) {
+        return serviceLink.getProjections().stream()
+                .flatMap(toScaled(scale))
+                .distinct();
     }
 
     private Function<LinkSequenceProjection, Stream<Box>> toScaled(Scale scale) {

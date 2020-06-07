@@ -1,6 +1,7 @@
 package stopnorway.data;
 
-import stopnorway.database.AbstractBoxed;
+import stopnorway.database.AbstractIdentified;
+import stopnorway.database.Boxed;
 import stopnorway.database.Id;
 import stopnorway.database.Named;
 import stopnorway.entur.ScheduledStopPoint;
@@ -12,11 +13,13 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public final class ScheduledTrip extends AbstractBoxed implements Named, Comparable<ScheduledTrip> {
+public final class ScheduledTrip extends AbstractIdentified implements Boxed, Named, Comparable<ScheduledTrip> {
 
     private final TripDefinition tripDefinition;
 
     private final Collection<ScheduledStop> scheduledStops;
+
+    private final Box box;
 
     public ScheduledTrip(
             Id serviceJourneyId,
@@ -39,10 +42,16 @@ public final class ScheduledTrip extends AbstractBoxed implements Named, Compara
         this.scheduledStops = scheduledStopPointRefs.stream()
                 .map(id -> groups.get(id).removeFirst())
                 .collect(Collectors.toList());
+        this.box = this.tripDefinition.getBox().orElse(null);
+    }
+
+    @Override
+    public Optional<Box> getBox() {
+        return Optional.ofNullable(box);
     }
 
     public Optional<LocalTime> getStartTime() {
-        return this.scheduledStops.stream().findFirst().map(ScheduledStop::getLocalTime);
+        return this.scheduledStops.stream().findFirst().map(ScheduledStop::getParsedLocalTime);
     }
 
     public Collection<ScheduledStop> getScheduledStops() {
@@ -56,7 +65,8 @@ public final class ScheduledTrip extends AbstractBoxed implements Named, Compara
                 "]";
     }
 
-    @Override public String getName() {
+    @Override
+    public String getName() {
         return tripDefinition.getName();
     }
 
@@ -65,10 +75,6 @@ public final class ScheduledTrip extends AbstractBoxed implements Named, Compara
         return o.getStartTime().isEmpty() ? -1
                 : getStartTime().isEmpty() ? 1
                         : getStartTime().flatMap(localTime -> o.getStartTime().map(localTime::compareTo)).orElse(0);
-    }
-
-    @Override protected Optional<Box> computeBox() {
-        return tripDefinition.computeBox();
     }
 
     private static <K, V extends Comparable<V>> Map<K, LinkedList<V>> group(

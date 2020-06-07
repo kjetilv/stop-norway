@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 public final class Line extends Entity {
 
     private final String name;
+
     private final String transportMode;
 
     public Line(Id id, String name, String transportMode) {
@@ -20,6 +21,14 @@ public final class Line extends Entity {
     public void hashTo(Consumer<byte[]> h) {
         super.hashTo(h);
         hash(h, name, transportMode);
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getTransportMode() {
+        return transportMode;
     }
 
     @Override

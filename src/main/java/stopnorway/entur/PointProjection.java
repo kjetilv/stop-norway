@@ -21,6 +21,10 @@ public final class PointProjection extends Entity {
         hash(h, projectedPointRef);
     }
 
+    public Id getProjectedPointRef() {
+        return projectedPointRef;
+    }
+
     @Override
     protected StringBuilder withStringBody(StringBuilder sb) {
         return super.withStringBody(sb).append(Field.ProjectedPointRef).append(": ").append(projectedPointRef);

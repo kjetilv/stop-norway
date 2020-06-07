@@ -7,12 +7,15 @@ import stopnorway.in.Field;
 import java.util.function.Consumer;
 
 public final class PointOnRoute extends Entity {
-
     private final Id routePoint;
 
     public PointOnRoute(Id id, Id routePoint) {
         super(id);
         this.routePoint = routePoint;
+    }
+
+    public Id getRoutePoint() {
+        return routePoint;
     }
 
     @Override

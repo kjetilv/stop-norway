@@ -34,17 +34,22 @@ public final class DatabaseImpl implements Database, Serializable {
 
     private final Map<TripDefinition, Collection<ServiceJourney>> scheduledTrips;
 
-    public DatabaseImpl(Stream<Entity> entities, Scale scale) {
-        this(null, entities, scale);
+    private final int size;
+
+    public DatabaseImpl(Box box, Scale scale, Stream<Entity> entities) {
+        this(box, scale, map(Objects.requireNonNull(entities, "entities")));
     }
 
-    public DatabaseImpl(Box box, Stream<Entity> entities, Scale scale) {
+    public DatabaseImpl(
+            Box box,
+            Scale scale,
+            Map<Class<? extends Entity>, Map<Id, Entity>> typedEntities
+    ) {
         this.box = box == null ? Points.NORWAY_BOX : box;
-        this.scale = Objects.requireNonNull(scale, "scale");
-        this.typedEntities = map(Objects.requireNonNull(entities, "entities"));
-
-        log.info("{} built from {} entities",
-                 this, this.typedEntities.values().stream().mapToLong(Map::size).sum());
+        this.scale = scale == null ? Scale.DEFAULT : scale;
+        this.typedEntities = typedEntities;
+        this.size = (int) this.typedEntities.values().stream().mapToLong(Map::size).sum();
+        log.info("{} built from {} entities", this, size);
 
         this.tripDefinitions = stream(JourneyPattern.class)
                 .map(this::tripDefinitions)
@@ -56,14 +61,18 @@ public final class DatabaseImpl implements Database, Serializable {
         this.tripDefinitions.values()
                 .forEach(def -> def.scaledBoxes(scale)
                         .forEach(scaledBox -> add(this.boxedTripDefinitions, scaledBox, def)));
+        log.info("{} indexed {} trips in {} boxes", this, tripDefinitions.size(), boxedTripDefinitions.size());
 
         this.scheduledTrips = getEntities(ServiceJourney.class)
                 .collect(Collectors.groupingBy(
                         serviceJourney -> tripDefinitions.get(serviceJourney.getJourneyPatternRef()),
                         HashMap::new,
                         Collectors.toCollection(ArrayList::new)));
+        log.info("{} collected {} scheduled trips", this, this.scheduledTrips.size());
+    }
 
-        log.info("{} indexed {} trips in {} boxes", this, tripDefinitions.size(), boxedTripDefinitions.size());
+    public Scale getScale() {
+        return scale;
     }
 
     @Override
@@ -87,6 +96,11 @@ public final class DatabaseImpl implements Database, Serializable {
     }
 
     @Override
+    public Stream<Entity> getEntities() {
+        return typedEntities.values().stream().map(Map::values).flatMap(Collection::stream);
+    }
+
+    @Override
     public String toString() {
         return getClass().getSimpleName() +
                 "[" + box +
@@ -98,18 +112,15 @@ public final class DatabaseImpl implements Database, Serializable {
                 "]";
     }
 
-    @NotNull
-    private Map<Class<? extends Entity>, Map<Id, Entity>> map(Stream<Entity> entities) {
-        return entities.collect(Collectors.groupingBy(
-                Entity::getClass,
-                HashMap::new,
-                Collectors.toMap(
-                        Entity::getId,
-                        o -> o
-                )));
+    @Override
+    public int getSize() {
+        return size;
     }
 
-    @NotNull
+    public Map<Class<? extends Entity>, Map<Id, Entity>> getTypedEntities() {
+        return typedEntities;
+    }
+
     private Stream<TripDefinition> streamTripDefinitions(Collection<Box> boxes) {
         return scaled(boxes)
                 .flatMap(scaledBox ->
@@ -220,6 +231,16 @@ public final class DatabaseImpl implements Database, Serializable {
 
     private <T> Stream<T> boxed(Map<Box, Collection<T>> boxed, Box bo) {
         return Optional.ofNullable(boxed.get(bo)).map(Collection::stream).stream().flatMap(s -> s);
+    }
+
+    private static HashMap<Class<? extends Entity>, Map<Id, Entity>> map(Stream<Entity> entities) {
+        return entities.collect(Collectors.groupingBy(
+                Entity::getClass,
+                HashMap::new,
+                Collectors.toMap(
+                        Entity::getId,
+                        Function.identity()
+                )));
     }
 
     private static <K, V> void add(Map<K, Collection<V>> map, K key, V item) {

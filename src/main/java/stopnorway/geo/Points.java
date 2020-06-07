@@ -25,20 +25,14 @@ public final class Points {
         return new DoublePoint(lat, lon);
     }
 
-    public static List<Point> sequence(
-            BiFunction<Double, Double, Point> pointMaker,
-            String str
-    ) {
+    public static List<Point> sequence(BiFunction<Double, Double, Point> pointMaker, String str) {
         if (str == null || str.isBlank()) {
             return Collections.emptyList();
         }
         return parse(pointMaker, str.split("\\s+"));
     }
 
-    private static List<Point> parse(
-            BiFunction<Double, Double, Point> pointMaker,
-            String... split
-    ) {
+    private static List<Point> parse(BiFunction<Double, Double, Point> pointMaker, String... split) {
         BiFunction<Double, Double, Point>
                 doubleDoublePointBiFunction =
                 pointMaker == null ? NORWAY_CODER::coded : pointMaker;

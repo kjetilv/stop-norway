@@ -35,7 +35,7 @@ public final class Progress {
 
     private final long mbs;
 
-    public Progress(Collection<OperatorSource> sources, Collection<Enum<?>> enums, Instant start) {
+    public Progress(Collection<OperatorSource> sources, Collection<? extends Enum<?>> enums, Instant start) {
         this.sources = sources.size();
         this.length = sources.stream().mapToLong(OperatorSource::getLength).sum();
         this.enums = enums.size();

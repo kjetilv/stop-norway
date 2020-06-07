@@ -2,11 +2,12 @@ package stopnorway.entur;
 
 import stopnorway.database.Entity;
 import stopnorway.database.Id;
+import stopnorway.database.Named;
 
 import java.util.Collection;
 import java.util.function.Consumer;
 
-public final class Route extends Entity {
+public final class Route extends Entity implements Named {
 
     private final String name;
 
@@ -28,6 +29,22 @@ public final class Route extends Entity {
         this.shortName = shortName;
         this.directionType = directionType;
         this.pointsInSequence = pointsInSequence;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getShortName() {
+        return shortName;
+    }
+
+    public String getDirectionType() {
+        return directionType;
+    }
+
+    public Collection<PointOnRoute> getPointsInSequence() {
+        return pointsInSequence;
     }
 
     @Override
