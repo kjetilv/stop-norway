@@ -11,7 +11,7 @@ public final class Points {
 
     public static final Box NORWAY_BOX = point(57, 4).box(point(72, 32));
 
-    public static final PointCoder NORWAY_CODER = new PointCoder(NORWAY_BOX, 6);
+    public static final PointCoder NORWAY_CODER = new PointCoder(NORWAY_BOX, CodedPoint.DEFAULT_POW10);
 
     private Points() {
 

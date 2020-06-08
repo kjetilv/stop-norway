@@ -9,7 +9,7 @@ public final class CodedPointSerializer extends Serializer<CodedPoint> {
 
     @Override
     public void write(Kryo kryo, Output output, CodedPoint object) {
-        if (object.dimension() == 1_000_000) {
+        if (object.dimension() == CodedPoint.DEFAULT_DIMENSION) {
             output.writeBoolean(true);
         } else {
             output.writeBoolean(false);
@@ -21,7 +21,9 @@ public final class CodedPointSerializer extends Serializer<CodedPoint> {
 
     @Override
     public CodedPoint read(Kryo kryo, Input input, Class<? extends CodedPoint> type) {
-        int dimension = input.readBoolean() ? 1_000_000 : (int) Math.pow(10, input.readVarInt(true));
+        int dimension = input.readBoolean()
+                ? CodedPoint.DEFAULT_DIMENSION
+                : (int) Math.pow(10, input.readVarInt(true));
         return new CodedPoint(
                 dimension,
                 input.readInt(true),

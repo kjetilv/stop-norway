@@ -2,6 +2,10 @@ package stopnorway.geo;
 
 public class CodedPoint extends AbstractPoint {
 
+    static final int DEFAULT_POW10 = 6;
+
+    static final int DEFAULT_DIMENSION = (int)Math.pow(10, DEFAULT_POW10);
+
     private final int dimension;
 
     private final int lat;
@@ -9,7 +13,7 @@ public class CodedPoint extends AbstractPoint {
     private final int lon;
 
     public CodedPoint(int dimension, double lat, double lon) {
-        this(dimension, scaled(lat, dimension), scaled(lon, dimension));
+        this(dimension, scaledToInt(lat, dimension), scaledToInt(lon, dimension));
     }
 
     public CodedPoint(int dimension, int lat, int lon) {
@@ -22,10 +26,7 @@ public class CodedPoint extends AbstractPoint {
     @Override
     public Point downTo(Scale scale) {
         if (scale == Scale.INTEGER) {
-            return new CodedPoint(
-                    dimension,
-                    lat - lat % dimension,
-                    lon - lon % dimension);
+            return coded(lat - lat % dimension, lon - lon % dimension);
         }
         return coded(
                 Math.floor(lat() * scale.getLat()) / scale.getLat(),
@@ -35,9 +36,7 @@ public class CodedPoint extends AbstractPoint {
     @Override
     public Point upTo(Scale scale) {
         if (scale == Scale.INTEGER) {
-            return new CodedPoint(
-                    dimension, lat - lat % dimension + dimension,
-                    lon - lon % dimension + dimension);
+            return coded(lat - lat % dimension + dimension, lon - lon % dimension + dimension);
         }
         return coded(
                 Math.ceil(lat() * scale.getLat()) / scale.getLat(),
@@ -48,9 +47,7 @@ public class CodedPoint extends AbstractPoint {
     public int compareTo(Point point) {
         if (point instanceof CodedPoint) {
             int latCompared = Integer.compare(lat, ((CodedPoint) point).lat);
-            return latCompared != 0
-                    ? latCompared
-                    : Integer.compare(lon, ((CodedPoint) point).lon);
+            return latCompared != 0 ? latCompared : Integer.compare(lon, ((CodedPoint) point).lon);
         }
         return super.compareTo(point);
     }
@@ -76,45 +73,46 @@ public class CodedPoint extends AbstractPoint {
 
     @Override
     public Point lat(Point lat) {
-        return new CodedPoint(dimension, intLat(), intLon());
+        return coded(intLat(), intLon());
     }
 
     @Override
     public Point lon(Point lon) {
-        return new CodedPoint(dimension, intLat(), intLon());
+        return coded(intLat(), intLon());
     }
 
-    public int dimension() {
+    int dimension() {
         return dimension;
     }
 
-    public int intLon() {
+    int intLon() {
         return lon;
     }
 
-    public int intLat() {
+    int intLat() {
         return lat;
     }
 
     @Override
-    protected CodedPoint translate(Distance latTranslation, Distance lonTranslation) {
-        return new CodedPoint(
-                dimension,
-                intLat() + scaled(getDeltaLat(latTranslation)),
-                intLon() + scaled(getDeltaLon(lonTranslation)));
+    protected Point translate(Distance latTranslation, Distance lonTranslation) {
+        return coded(
+                intLat() + scaledToInt(getDeltaLat(latTranslation)),
+                intLon() + scaledToInt(getDeltaLon(lonTranslation)));
     }
 
     private Point coded(double lat, double lon) {
-        int intLat = scaled(lat);
-        int intLon = scaled(lon);
-        return new CodedPoint(dimension, intLat, intLon);
+        return coded(scaledToInt(lat), scaledToInt(lon));
     }
 
-    private int scaled(double v) {
-        return scaled(v, this.dimension);
+    private Point coded(int lat, int lon) {
+        return new CodedPoint(dimension, lat, lon);
     }
 
-    private static int scaled(double v, int dimension) {
+    private int scaledToInt(double v) {
+        return scaledToInt(v, this.dimension);
+    }
+
+    private static int scaledToInt(double v, int dimension) {
         return (int) Math.round(v * dimension);
     }
 }
