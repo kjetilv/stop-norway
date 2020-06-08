@@ -1,5 +1,6 @@
 package stopnorway.in;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import stopnorway.Database;
 import stopnorway.data.Operator;
@@ -17,12 +18,14 @@ import static stopnorway.geo.Points.point;
 class ParserTest extends ParserTestCase {
 
     @Test
+    @Disabled
     public void serviceLinksRuter() {
         Database run = run(Operator.RUT);
 
     }
 
     @Test
+    @Disabled
     public void serviceLinksAll() {
         Database run = run();
 

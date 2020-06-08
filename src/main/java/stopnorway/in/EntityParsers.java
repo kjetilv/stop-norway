@@ -83,7 +83,7 @@ public final class EntityParsers {
         return new EntityParser<>(
                 Route.class,
                 EntityParsers::route,
-                Name, ShortName, DirectionType
+                Name, ShortName, DirectionType, LineRef
         ).withSublist(
                 Sublist.pointsInSequence,
                 new EntityParser<>(
@@ -178,6 +178,7 @@ public final class EntityParsers {
                 data.getId(),
                 data.getContent(Name),
                 data.getContent(ShortName),
+                data.getId(LineRef),
                 data.getContent(DirectionType),
                 (Collection<PointOnRoute>) data.getSublist(Sublist.pointsInSequence));
     }

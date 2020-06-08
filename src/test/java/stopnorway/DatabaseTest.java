@@ -9,7 +9,9 @@ import stopnorway.geo.Points;
 import stopnorway.geo.Unit;
 import stopnorway.in.TestData;
 
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -19,10 +21,16 @@ class DatabaseTest {
     void test_national() {
         Database database = TestData.getDatabase(Operator.RUT);
 
-        Point point = Points.point(59.914632, 10.732630);
+        Point[] points = {
+                Points.point(59.913916, 10.734865),
+                Points.point(59.913470, 10.736641),
+                Points.point(59.912921, 10.738953)
+        };
         Distance accuracy = Distance.of(10, Unit.M);
-        Collection<TripDefinition> tripDefinitions = database.getTripDefinitions(point.squareBox(accuracy));
+        Collection<TripDefinition> tripDefinitions = database.getTripDefinitions(
+                Arrays.stream(points)
+                        .map(point -> point.squareBox(accuracy))
+                        .collect(Collectors.toList()));
         assertThat(tripDefinitions).isNotEmpty();
     }
-
 }

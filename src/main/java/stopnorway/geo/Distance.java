@@ -65,4 +65,8 @@ public final class Distance {
         Distance millis = Distance.of(1.0d * mm * scale, Unit.MM);
         return millis.getMm();
     }
+
+    public boolean isShorterThanOrEqualTo(Distance distance) {
+        return toMillis() < distance.toMillis();
+    }
 }

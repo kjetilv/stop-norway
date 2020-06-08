@@ -126,7 +126,8 @@ public final class DatabaseImpl implements Database, Serializable {
                 .flatMap(scaledBox ->
                                  boxed(this.boxedTripDefinitions, scaledBox))
                 .filter(tripDefinition ->
-                                overlapping(boxes, tripDefinition));
+                                overlapping(boxes, tripDefinition))
+                .distinct();
     }
 
     private ScheduledTrip scheduledTrip(ServiceJourney serviceJourney, Function<Id, TripDefinition> patterns) {
@@ -172,6 +173,9 @@ public final class DatabaseImpl implements Database, Serializable {
     }
 
     private <E extends Entity> E getEntity(Class<E> type, Id id) {
+        if (id == null) {
+            return null;
+        }
         if (id.is(type)) {
             Entity obj = typedEntities.get(type).get(id);
             if (obj == null) {
@@ -186,9 +190,13 @@ public final class DatabaseImpl implements Database, Serializable {
     }
 
     private TripDefinition tripDefinitions(JourneyPattern journeyPattern) {
+        Route route = getEntity(Route.class, journeyPattern.getRouteRef());
+        Line line = route == null ? null : getEntity(Line.class, route.getLineRef());
         return new TripDefinition(
                 journeyPattern.getId(),
                 journeyPattern.getName(),
+                route,
+                line,
                 stopPoints(journeyPattern),
                 serviceLegs(journeyPattern));
     }
@@ -211,7 +219,7 @@ public final class DatabaseImpl implements Database, Serializable {
             ServiceLink serviceLink =
                     getEntity(ServiceLink.class, sequencedInJourneyPattern.getServiceLinkRef());
             if (serviceLink == null) {
-                log.warn("No service link found: " + journeyPattern + " => " + sequencedInJourneyPattern);
+                log.warn("No service link found: {} => {}", journeyPattern, sequencedInJourneyPattern);
             }
             return new AbstractMap.SimpleEntry<>(
                     sequencedInJourneyPattern,

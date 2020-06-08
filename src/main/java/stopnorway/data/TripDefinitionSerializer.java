@@ -4,9 +4,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import stopnorway.database.AbstractSerializer;
-import stopnorway.entur.ScheduledStopPoint;
-import stopnorway.entur.ServiceLinkInJourneyPattern;
-import stopnorway.entur.StopPointInJourneyPattern;
+import stopnorway.entur.*;
 
 public class TripDefinitionSerializer extends AbstractSerializer<TripDefinition> {
 
@@ -16,6 +14,8 @@ public class TripDefinitionSerializer extends AbstractSerializer<TripDefinition>
     ) {
         writeId(kryo, output, object.getJourneyPatternId());
         writeString(output, object.getName());
+        kryo.writeObject(output, object.getRoute());
+        kryo.writeObject(output, object.getLine());
         writeMapEntries(kryo, output, object.getStopPoints());
         writeMapEntries(kryo, output, object.getServiceLegs());
     }
@@ -27,6 +27,8 @@ public class TripDefinitionSerializer extends AbstractSerializer<TripDefinition>
         return new TripDefinition(
                 readId(kryo, input),
                 readString(input),
+                kryo.readObject(input, Route.class),
+                kryo.readObject(input, Line.class),
                 readMapEntries(kryo, input, StopPointInJourneyPattern.class, ScheduledStopPoint.class),
                 readMapEntries(kryo, input, ServiceLinkInJourneyPattern.class, ServiceLeg.class));
     }

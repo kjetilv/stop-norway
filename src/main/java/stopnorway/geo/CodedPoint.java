@@ -56,6 +56,15 @@ public class CodedPoint extends AbstractPoint {
     }
 
     @Override
+    public boolean isSouthwestOf(Point point) {
+        if (point instanceof CodedPoint) {
+            CodedPoint cp = (CodedPoint) point;
+            return lat < cp.lat && lon < cp.lon;
+        }
+        return super.isSouthwestOf(point);
+    }
+
+    @Override
     public double lat() {
         return 1.0d * this.lat / dimension;
     }

@@ -13,6 +13,8 @@ public final class Route extends Entity implements Named {
 
     private final String shortName;
 
+    private final Id lineRef;
+
     private final String directionType;
 
     private final Collection<PointOnRoute> pointsInSequence;
@@ -21,12 +23,14 @@ public final class Route extends Entity implements Named {
             Id id,
             String name,
             String shortName,
+            Id lineRef,
             String directionType,
             Collection<PointOnRoute> pointsInSequence
     ) {
         super(id);
         this.name = name;
         this.shortName = shortName;
+        this.lineRef = lineRef;
         this.directionType = directionType;
         this.pointsInSequence = pointsInSequence;
     }
@@ -37,6 +41,10 @@ public final class Route extends Entity implements Named {
 
     public String getShortName() {
         return shortName;
+    }
+
+    public Id getLineRef() {
+        return lineRef;
     }
 
     public String getDirectionType() {

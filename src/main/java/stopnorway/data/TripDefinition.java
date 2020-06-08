@@ -4,25 +4,27 @@ import stopnorway.database.AbstractIdentified;
 import stopnorway.database.Boxed;
 import stopnorway.database.Id;
 import stopnorway.database.Named;
-import stopnorway.entur.ScheduledStopPoint;
-import stopnorway.entur.ServiceLinkInJourneyPattern;
-import stopnorway.entur.StopPointInJourneyPattern;
+import stopnorway.entur.*;
 import stopnorway.geo.Box;
+import stopnorway.geo.Point;
 import stopnorway.geo.Scale;
 import stopnorway.util.Accept;
 
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class TripDefinition extends AbstractIdentified implements Serializable, Boxed, Named {
 
-    private final Id journeyPatternId;
-
     private final String name;
+
+    private final Route route;
+
+    private final Line line;
 
     private final Collection<Map.Entry<StopPointInJourneyPattern, ScheduledStopPoint>> stopPoints;
 
@@ -33,12 +35,15 @@ public class TripDefinition extends AbstractIdentified implements Serializable, 
     public TripDefinition(
             Id journeyPatternId,
             String name,
+            Route route,
+            Line line,
             Collection<Map.Entry<StopPointInJourneyPattern, ScheduledStopPoint>> stopPoints,
             Collection<Map.Entry<ServiceLinkInJourneyPattern, ServiceLeg>> serviceLegs
     ) {
         super(journeyPatternId);
-        this.journeyPatternId = journeyPatternId;
-        this.name = name;
+        this.name = Objects.requireNonNull(name, "name");
+        this.route = Objects.requireNonNull(route, "route");
+        this.line = Objects.requireNonNull(line, "line");
         this.stopPoints = Accept.list(stopPoints);
         this.serviceLegs = Accept.list(serviceLegs);
         this.box = this.serviceLegs.stream()
@@ -57,24 +62,50 @@ public class TripDefinition extends AbstractIdentified implements Serializable, 
         return serviceLegs;
     }
 
-    public Stream<Box> scaledBoxes(Scale scale) {
-        return serviceLegs.stream()
-                .map(Map.Entry::getValue)
-                .flatMap(serviceLeg ->
-                                 serviceLeg.scaledBoxes(scale))
-                .distinct()
-                .sorted();
+    public Route getRoute() {
+        return route;
+    }
+
+    public Line getLine() {
+        return line;
+    }
+
+    public Id getLineId() {
+        return line.getId();
     }
 
     public Id getJourneyPatternId() {
-        return journeyPatternId;
+        return getId();
+    }
+
+    public Collection<Point> points() {
+        return serviceLegs.stream()
+                .map(Map.Entry::getValue)
+                .map(ServiceLeg::getServiceLink)
+                .map(ServiceLink::getProjections)
+                .flatMap(Collection::stream)
+                .map(LinkSequenceProjection::getTrajectory)
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList());
+    }
+
+    public Stream<Box> scaledBoxes(Scale scale) {
+        return serviceLegs.stream()
+                .map(Map.Entry::getValue)
+                .flatMap(serviceLeg -> serviceLeg.scaledBoxes(scale))
+                .distinct()
+                .sorted();
     }
 
     @Override
     public String toString() {
         Collection<Map.Entry<StopPointInJourneyPattern, ScheduledStopPoint>> stopPoints = this.stopPoints;
         int size = stopPoints.size();
-        return getClass().getSimpleName() + "[" + name + " stopPoints:" + print(stopPoints, size) + "]";
+        return getClass().getSimpleName() + "[" +
+                (line == null ? "<no line>" : line.getId().getId() + " " + line.getName()) + " " +
+                (line == null ? "" : " (" + line.getTransportMode()) + ") " +
+                (route == null ? "" : " " + route.getDirectionType() + " ") +
+                name + " stopPoints:" + print(stopPoints, size) + "]";
     }
 
     @Override

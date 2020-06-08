@@ -1,10 +1,12 @@
 package stopnorway.in;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import stopnorway.Database;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Disabled
 class ParserProfilingTest extends ParserTestCase {
 
     @Test

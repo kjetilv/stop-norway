@@ -43,6 +43,15 @@ public final class DoublePoint extends AbstractPoint {
     }
 
     @Override
+    public boolean isSouthwestOf(Point point) {
+        if (point instanceof DoublePoint) {
+            DoublePoint dp = (DoublePoint) point;
+            return lat < dp.lat && lon < dp.lon;
+        }
+        return super.isSouthwestOf(point);
+    }
+
+    @Override
     protected DoublePoint translate(Distance latTranslation, Distance lonTranslation) {
 
         return new DoublePoint(

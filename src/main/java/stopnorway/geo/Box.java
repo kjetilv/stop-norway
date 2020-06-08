@@ -71,10 +71,7 @@ public final class Box implements Serializable, Comparable<Box> {
     }
 
     public boolean contains(Point point) {
-        double lat = point.lat();
-        double lon = point.lon();
-        return min.lat() <= lat && lat < max.lat() &&
-                min.lon() <= lon && lon < max.lon();
+        return point.isSouthwestOf(max()) && min().isSouthwestOf(point);
     }
 
     @Override
@@ -138,13 +135,13 @@ public final class Box implements Serializable, Comparable<Box> {
     }
 
     private static Point[] minMax(Point min, Point max) {
+        if (min.isSouthwestOf(max)) {
+            return new Point[] { min, max };
+        }
         double minLat = min.lat();
         double minLon = min.lon();
         double maxLon = max.lon();
         double maxLat = max.lat();
-        if (minLat < maxLat && minLon < maxLon) {
-            return new Point[] { min, max };
-        }
         return new Point[] {
                 Points.point(Math.min(minLat, maxLat), Math.min(minLon, maxLon)),
                 Points.point(Math.max(minLat, maxLat), Math.max(minLon, maxLon))

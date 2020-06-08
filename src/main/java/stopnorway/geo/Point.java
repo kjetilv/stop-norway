@@ -12,6 +12,10 @@ public interface Point extends Serializable, Comparable<Point> {
         return downTo(scale).box(upTo(scale));
     }
 
+    default boolean isSouthwestOf(Point point) {
+        return lat() < point.lat() && lon() < point.lon();
+    }
+
     Point downTo(Scale scale);
 
     Point upTo(Scale scale);
@@ -27,6 +31,14 @@ public interface Point extends Serializable, Comparable<Point> {
     Distance distanceTo(Point point);
 
     Point translate(Translation translation);
+
+    default boolean isWithin(Box box) {
+        return box.contains(this);
+    }
+
+    default boolean isWithinRadius(Point point, Distance radius) {
+        return distanceTo(point).isShorterThanOrEqualTo(radius);
+    }
 
     default Box squareBox(Distance sideLength) {
         Point max = this

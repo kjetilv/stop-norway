@@ -12,6 +12,7 @@ public final class RouteSerializer extends AbstractSerializer<Route> {
         writeId(kryo, output, object);
         writeString(output, object.getName());
         writeString(output, object.getShortName());
+        writeId(kryo, output, object.getLineRef());
         writeString(output, object.getDirectionType());
         writeList(kryo, output, object.getPointsInSequence());
     }
@@ -22,6 +23,7 @@ public final class RouteSerializer extends AbstractSerializer<Route> {
                 readId(kryo, input),
                 readString(input),
                 readString(input),
+                readId(kryo, input),
                 readString(input),
                 readList(kryo, input, PointOnRoute.class));
     }

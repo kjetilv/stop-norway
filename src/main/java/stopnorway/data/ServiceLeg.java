@@ -81,19 +81,6 @@ public final class ServiceLeg extends AbstractIdentified implements Serializable
     }
 
     @Override
-    public boolean equals(Object o) {
-        return this == o || o instanceof ServiceLeg &&
-                Objects.equals(from, ((ServiceLeg) o).from) &&
-                Objects.equals(to, ((ServiceLeg) o).to) &&
-                Objects.equals(serviceLink, ((ServiceLeg) o).serviceLink);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(from, to, serviceLink);
-    }
-
-    @Override
     public String toString() {
         return getClass().getSimpleName() +
                 "[" + (from.getName() == null ? from : from.getName()) +
