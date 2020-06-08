@@ -64,6 +64,25 @@ public final class Databases {
                 resolve(operators));
     }
 
+    public Database adhoc(Enum<?>... operators) {
+        return adhoc(Arrays.asList(operators));
+    }
+
+    public Database adhoc(Collection<? extends Enum<?>> operators) {
+        return adhoc(null, null, operators);
+    }
+
+    public Database adhoc(Box box, Scale scale, Collection<? extends Enum<?>> operators) {
+        return get(
+                Objects.requireNonNull(zipFile, "zipFile"),
+                box == null ? Points.NORWAY_BOX : box,
+                scale == null ? Scale.DEFAULT : scale,
+                false,
+                false,
+                all(operators),
+                resolve(operators));
+    }
+
     public Database get(Box box, Scale scale, Collection<? extends Enum<?>> operators) {
         return get(
                 Objects.requireNonNull(zipFile, "zipFile"),
@@ -89,7 +108,7 @@ public final class Databases {
             Path zipFile,
             Box box,
             Scale scale,
-            boolean dumpable,
+            boolean dump,
             boolean reuse,
             boolean all,
             Collection<? extends Enum<?>> operators
@@ -99,7 +118,7 @@ public final class Databases {
             log.info("Database will be read from {}", serialForm);
             return read(serialForm);
         }
-        if (dumpable) {
+        if (dump) {
             log.info("Database will be dumped to {}", serialForm);
         }
         Path directory = Importer.unzipped(zipFile, operators);
@@ -109,7 +128,7 @@ public final class Databases {
                     box == null ? Points.NORWAY_BOX : box,
                     scale == null ? Scale.DEFAULT : scale,
                     parser.entities());
-            if (dumpable) {
+            if (dump) {
                 write(database, serialForm);
             }
             return database;
@@ -125,7 +144,7 @@ public final class Databases {
         Kryo kryo = kryo();
         try (
                 OutputStream os = new FileOutputStream(serialForm.toFile());
-                Output output = new Output(os);
+                Output output = new Output(os)
         ) {
             kryo.writeObject(
                     output,
@@ -142,7 +161,7 @@ public final class Databases {
         log.info("Reading db from {}...", serialForm);
         Kryo kryo = kryo();
         try (
-                InputStream is = new FileInputStream(serialForm.toFile());
+                InputStream is = new FileInputStream(serialForm.toFile())
         ) {
             return kryo.readObject(
                     new Input(is),
@@ -180,11 +199,13 @@ public final class Databases {
         register(kryo, DatabaseImpl.class, new DatabaseImplSerializer());
         register(kryo, Box.class, new BoxSerializer());
         register(kryo, Scale.class, new ScaleSerializer());
-        register(kryo, DoublePoint.class, new DoublePointSerializer());
         register(kryo, CodedPoint.class, new CodedPointSerializer());
         register(kryo, JourneyPattern.class, new JourneyPatternSerializer());
         register(kryo, Line.class, new LineSerializer());
-        register(kryo, LinkSequenceProjection.class, new LinkSequenceProjectionSerializer(CodedPoint.class));
+        register(
+                kryo,
+                LinkSequenceProjection.class,
+                new LinkSequenceProjectionSerializer(CodedPoint.DEFAULT_DIMENSION));
         register(kryo, PointOnRoute.class, new PointOnRouteSerializer());
         register(kryo, PointProjection.class, new PointProjectionSerializer());
         register(kryo, Route.class, new RouteSerializer());

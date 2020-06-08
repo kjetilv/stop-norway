@@ -38,8 +38,7 @@ class ParserTest extends ParserTestCase {
 
         Box surroundingBox = point(60.86, 7.11).box(point(60.87, 7.12));
 
-        assertThat(run.getTripDefinitions(
-                surroundingBox)).hasSizeGreaterThan(11);
+        assertThat(run.getTripDefinitions(surroundingBox)).hasSizeGreaterThan(11);
 
         Point flaamStasjon = point(60.86307, 7.11378);
 

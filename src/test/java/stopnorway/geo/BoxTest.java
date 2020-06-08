@@ -8,9 +8,9 @@ class BoxTest {
 
     @Test
     void test_build() {
-        Box box = Points.point(1, 200).box(Points.point(2, 100));
-        assertThat(box.min()).isEqualTo(Points.point(1, 100));
-        assertThat(box.max()).isEqualTo(Points.point(2, 200));
+        Box box = Points.point(1d, 200d).box(Points.point(2d, 100d));
+        assertThat(box.min()).isEqualTo(Points.point(1d, 100d));
+        assertThat(box.max()).isEqualTo(Points.point(2d, 200d));
     }
 
     @Test
@@ -52,16 +52,16 @@ class BoxTest {
 
     @Test
     void test_overlap() {
-        Box box1 = Points.point(1, 100).box(Points.point(2, 200));
-        Box box2 = Points.point(1.5, 50).box(Points.point(2.5, 250));
+        Box box1 = Points.point(1d, 100d).box(Points.point(2d, 200d));
+        Box box2 = Points.point(1.5d, 50d).box(Points.point(2.5d, 250d));
 
         asserOverlap(box1, box2);
     }
 
     @Test
     void test_overlap_again() {
-        Box box1 = Points.point(1, 1).box(Points.point(3, 3));
-        Box box2 = Points.point(2, 0).box(Points.point(4, 4));
+        Box box1 = Points.point(1d, 1d).box(Points.point(3d, 3d));
+        Box box2 = Points.point(2d, 0d).box(Points.point(4d, 4d));
 
         asserOverlap(box1, box2);
     }
@@ -99,19 +99,19 @@ class BoxTest {
 
     @Test
     void test_combine() {
-        Box box1 = Points.point(1, 100).box(Points.point(2, 200));
-        Box box2 = Points.point(1.5, 50).box(Points.point(2.5, 250));
+        Box box1 = Points.point(1d, 100d).box(Points.point(2d, 200d));
+        Box box2 = Points.point(1.5d, 50d).box(Points.point(2.5d, 250d));
 
         assertThat(box1.combined(box2)).isEqualTo(
-                Points.point(1, 50).box(Points.point(2.5, 250)));
+                Points.point(1d, 50d).box(Points.point(2.5d, 250d)));
     }
 
     @Test
     void test_combine2() {
-        Box box1 = Points.point(1, 1).box(Points.point(2, 2));
-        Box box2 = Points.point(3, 3).box(Points.point(5, 5));
+        Box box1 = Points.point(1d, 1d).box(Points.point(2d, 2d));
+        Box box2 = Points.point(3d, 3d).box(Points.point(5d, 5d));
 
         assertThat(box1.combined(box2)).isEqualTo(
-                Points.point(1, 1).box(Points.point(5, 5)));
+                Points.point(1d, 1d).box(Points.point(5d, 5d)));
     }
 }

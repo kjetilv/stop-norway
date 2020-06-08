@@ -59,8 +59,8 @@ public final class LinkSequenceProjection extends Entity {
 
     @NotNull
     private Optional<Point> computeMin() {
-        return this.trajectory.stream().min(Comparator.comparing(Point::lat))
-                .flatMap(lat ->
-                                 this.trajectory.stream().min(Comparator.comparing(Point::lon)).map(lat::lon));
+        return this.trajectory.stream()
+                .min(Comparator.comparing(Point::lat))
+                .flatMap(lat -> this.trajectory.stream().min(Comparator.comparing(Point::lon)).map(lat::lon));
     }
 }

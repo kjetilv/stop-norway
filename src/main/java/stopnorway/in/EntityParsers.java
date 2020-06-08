@@ -8,7 +8,6 @@ import stopnorway.geo.Points;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 import static stopnorway.in.Attr.order;
 import static stopnorway.in.Field.*;
@@ -20,10 +19,10 @@ public final class EntityParsers {
         return all(null);
     }
 
-    static List<EntityParser<? extends Entity>> all(BiFunction<Double, Double, Point> pointMaker) {
+    static List<EntityParser<? extends Entity>> all(BiFunction<String, String, Point> pointMaker) {
         return List.of(
                 lineParser(),
-                serviceLinkParser(pointMaker),
+                serviceLinkParser(),
                 scheduledStopPointParser(),
                 routePointParser(),
                 routeParser(),
@@ -34,40 +33,63 @@ public final class EntityParsers {
     static EntityParser<Line> lineParser() {
         return new EntityParser<>(
                 Line.class,
-                EntityParsers::line,
+                data -> new Line(
+                        data.getId(),
+                        data.getContent(Name),
+                        data.getContent(TransportMode)),
                 List.of(Name, TransportMode));
     }
 
     static EntityParser<ServiceJourney> serviceJourneyParser() {
         return new EntityParser<>(
                 ServiceJourney.class,
-                EntityParsers::serviceJourney,
-                List.of(Name, JourneyPatternRef, LineRef)
+                data -> new ServiceJourney(
+                        data.getId(),
+                        data.getContent(Name),
+                        data.getContent(TransportMode),
+                        data.getId(JourneyPatternRef),
+                        data.getId(LineRef),
+                        (Collection<TimetabledPassingTime>) data.getSublist(Sublist.passingTimes)),
+                List.of(Name, TransportMode, JourneyPatternRef, LineRef)
         ).withSublist(
                 Sublist.passingTimes,
                 new EntityParser<>(
                         TimetabledPassingTime.class,
-                        EntityParsers::timetabledPassingTime,
-                        List.of(DepartureTime, StopPointInJourneyPatternRef, TransportMode)));
+                        data -> new TimetabledPassingTime(
+                                data.getId(),
+                                data.getId(StopPointInJourneyPatternRef),
+                                data.getContent(DepartureTime)),
+                        List.of(DepartureTime, StopPointInJourneyPatternRef)));
     }
 
     static EntityParser<JourneyPattern> journeyPatternParser() {
         return new EntityParser<>(
                 JourneyPattern.class,
-                EntityParsers::journeyPattern,
+                data2 -> new JourneyPattern(
+                        data2.getId(),
+                        data2.getContent(Name),
+                        data2.getId(RouteRef),
+                        (Collection<StopPointInJourneyPattern>) data2.getSublist(Sublist.pointsInSequence),
+                        (Collection<ServiceLinkInJourneyPattern>) data2.getSublist(Sublist.linksInSequence)),
                 List.of(RouteRef, Name)
         ).withSublist(
                 Sublist.pointsInSequence,
                 new EntityParser<>(
                         StopPointInJourneyPattern.class,
-                        EntityParsers::stopPointInJourneyPattern,
+                        data -> new StopPointInJourneyPattern(
+                                data.getId(),
+                                data.getIntAttribute(order),
+                                data.getId(ScheduledStopPointRef)),
                         List.of(ScheduledStopPointRef),
                         List.of(order))
         ).withSublist(
                 Sublist.linksInSequence,
-                new EntityParser<ServiceLinkInJourneyPattern>(
+                new EntityParser<>(
                         ServiceLinkInJourneyPattern.class,
-                        EntityParsers::serviceLinkInJourneyPattern,
+                        data -> new ServiceLinkInJourneyPattern(
+                                data.getId(),
+                                data.getIntAttribute(order),
+                                data.getId(ServiceLinkRef)),
                         List.of(ServiceLinkRef),
                         List.of(order)));
     }
@@ -75,147 +97,67 @@ public final class EntityParsers {
     static EntityParser<ScheduledStopPoint> scheduledStopPointParser() {
         return new EntityParser<>(
                 ScheduledStopPoint.class,
-                EntityParsers::scheduledStopPoint,
+                data -> new ScheduledStopPoint(
+                        data.getId(),
+                        data.getContent(Name)),
                 Name);
     }
 
     static EntityParser<Route> routeParser() {
         return new EntityParser<>(
                 Route.class,
-                EntityParsers::route,
-                Name, ShortName, DirectionType, LineRef
+                data -> new Route(
+                        data.getId(),
+                        data.getContent(Name),
+                        data.getContent(ShortName),
+                        data.getId(LineRef),
+                        data.getContent(DirectionType),
+                        (Collection<PointOnRoute>) data.getSublist(Sublist.pointsInSequence)),
+                Name, ShortName, LineRef, DirectionType
         ).withSublist(
                 Sublist.pointsInSequence,
                 new EntityParser<>(
                         PointOnRoute.class,
-                        EntityParsers::pointOnRoute,
+                        data -> new PointOnRoute(
+                                data.getId(),
+                                data.getId(RoutePointRef)),
                         RoutePointRef));
     }
 
-    static EntityParser<ServiceLink> serviceLinkParser(BiFunction<Double, Double, Point> pointMaker) {
+    static EntityParser<ServiceLink> serviceLinkParser() {
         return new EntityParser<>(
                 ServiceLink.class,
-                EntityParsers::serviceLink,
+                data -> new ServiceLink(
+                        data.getId(),
+                        data.getId(FromPointRef),
+                        data.getId(ToPointRef),
+                        data.getContent(Distance),
+                        (Collection<LinkSequenceProjection>) data.getSublist(Sublist.projections)),
                 FromPointRef, ToPointRef, Distance
         ).withSublist(
                 Sublist.projections,
                 new EntityParser<>(
                         LinkSequenceProjection.class,
-                        data ->
-                                linkSequenceProjection(
-                                        data,
-                                        Points.pointsSequencer(pointMaker)),
+                        data -> new LinkSequenceProjection(
+                                data.getId(),
+                                Points.sequence(data.getContent(posList))),
                         posList));
     }
 
     static EntityParser<RoutePoint> routePointParser() {
         return new EntityParser<>(
                 RoutePoint.class,
-                EntityParsers::routePoint
+                data -> new RoutePoint(
+                        data.getId(),
+                        (Collection<PointProjection>) data.getSublist(Sublist.projections))
         ).withSublist(
                 Sublist.projections,
                 new EntityParser<>(
                         PointProjection.class,
-                        EntityParsers::pointProjection,
+                        data -> new PointProjection(
+                                data.getId(),
+                                data.getId(ProjectedPointRef)),
                         ProjectedPointRef));
     }
 
-    private static Line line(EntityData data) {
-        return new Line(
-                data.getId(),
-                data.getContent(Name),
-                data.getContent(TransportMode));
-    }
-
-    private static TimetabledPassingTime timetabledPassingTime(EntityData data) {
-        return new TimetabledPassingTime(
-                data.getId(),
-                data.getId(StopPointInJourneyPatternRef),
-                data.getContent(DepartureTime));
-    }
-
-    private static ServiceJourney serviceJourney(EntityData data) {
-        return new ServiceJourney(
-                data.getId(),
-                data.getContent(Name),
-                data.getContent(TransportMode),
-                data.getId(JourneyPatternRef),
-                data.getId(LineRef),
-                (Collection<TimetabledPassingTime>) data.getSublist(Sublist.passingTimes));
-    }
-
-    private static StopPointInJourneyPattern stopPointInJourneyPattern(EntityData data) {
-        return new StopPointInJourneyPattern(
-                data.getId(),
-                data.getIntAttribute(order),
-                data.getId(ScheduledStopPointRef));
-    }
-
-    private static ServiceLinkInJourneyPattern serviceLinkInJourneyPattern(EntityData data) {
-        return new ServiceLinkInJourneyPattern(
-                data.getId(),
-                data.getIntAttribute(order),
-                data.getId(ServiceLinkRef));
-    }
-
-    private static JourneyPattern journeyPattern(EntityData data) {
-        return new JourneyPattern(
-                data.getId(),
-                data.getContent(Name),
-                data.getId(RouteRef),
-                (Collection<StopPointInJourneyPattern>) data.getSublist(Sublist.pointsInSequence),
-                (Collection<ServiceLinkInJourneyPattern>) data.getSublist(Sublist.linksInSequence));
-    }
-
-    private static ScheduledStopPoint scheduledStopPoint(EntityData data) {
-        return new ScheduledStopPoint(
-                data.getId(),
-                data.getContent(Name));
-    }
-
-    private static Route route(EntityData data) {
-        return new Route(
-                data.getId(),
-                data.getContent(Name),
-                data.getContent(ShortName),
-                data.getId(LineRef),
-                data.getContent(DirectionType),
-                (Collection<PointOnRoute>) data.getSublist(Sublist.pointsInSequence));
-    }
-
-    private static PointOnRoute pointOnRoute(EntityData data) {
-        return new PointOnRoute(
-                data.getId(),
-                data.getId(RoutePointRef));
-    }
-
-    private static RoutePoint routePoint(EntityData data) {
-        return new RoutePoint(
-                data.getId(),
-                (Collection<PointProjection>) data.getSublist(Sublist.projections));
-    }
-
-    private static PointProjection pointProjection(EntityData data) {
-        return new PointProjection(
-                data.getId(),
-                data.getId(ProjectedPointRef));
-    }
-
-    private static LinkSequenceProjection linkSequenceProjection(
-            EntityData data,
-            Function<String, Collection<Point>> pointsSequencer
-    ) {
-        return new LinkSequenceProjection(
-                data.getId(),
-                pointsSequencer.apply(data.getContent(posList)));
-    }
-
-    private static ServiceLink serviceLink(EntityData data) {
-        return new ServiceLink(
-                data.getId(),
-                data.getId(FromPointRef),
-                data.getId(ToPointRef),
-                data.getContent(Distance),
-                (Collection<LinkSequenceProjection>) data.getSublist(Sublist.projections));
-    }
 }

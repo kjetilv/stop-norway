@@ -41,7 +41,7 @@ public final class ParserFactory {
     }
 
     private List<EntityParser<? extends Entity>> allEntityParsers() {
-        return EntityParsers.all(Points.NORWAY_CODER::coded);
+        return EntityParsers.all(Points::point);
     }
 
     private ExecutorService executorService(int queue) {

@@ -25,15 +25,6 @@ public final class Sample {
 
     public Box getBox() {
 
-        double latRadians = Math.toRadians(point.lat());
-
-        Distance degreeLonMeters =
-                Distance.of(DEGREE_LON.toMeters() * Math.cos(latRadians), Unit.M);
-
-        double deltaLat = 1.0d * accuracy.toMillis() / DEGREE_LAT.toMillis();
-        double deltaLon = 1.0d * accuracy.toMillis() / degreeLonMeters.toMillis();
-
-        return Points.point(point.lat() - deltaLat, point.lon() - deltaLon).box(
-                Points.point(point.lat() + deltaLat, point.lon() + deltaLon));
+        return point.squareBox(accuracy);
     }
 }

@@ -27,7 +27,7 @@ public abstract class AbstractPoint implements Point {
 
     @Override
     public String toString() {
-        return lat() + ", " + lon();
+        return lat() + "," + lon();
     }
 
     @Override

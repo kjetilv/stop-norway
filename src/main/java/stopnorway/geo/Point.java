@@ -13,7 +13,7 @@ public interface Point extends Serializable, Comparable<Point> {
     }
 
     default boolean isSouthwestOf(Point point) {
-        return lat() < point.lat() && lon() < point.lon();
+        return !equals(point) && lat() <= point.lat() && lon() <= point.lon();
     }
 
     Point downTo(Scale scale);
@@ -22,9 +22,13 @@ public interface Point extends Serializable, Comparable<Point> {
 
     double lat();
 
-    Point lat(Point lat);
-
     double lon();
+
+    int intLat();
+
+    int intLon();
+
+    Point lat(Point lat);
 
     Point lon(Point lon);
 

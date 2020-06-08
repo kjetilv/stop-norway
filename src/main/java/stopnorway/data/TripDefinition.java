@@ -13,7 +13,6 @@ import stopnorway.util.Accept;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -41,9 +40,9 @@ public class TripDefinition extends AbstractIdentified implements Serializable, 
             Collection<Map.Entry<ServiceLinkInJourneyPattern, ServiceLeg>> serviceLegs
     ) {
         super(journeyPatternId);
-        this.name = Objects.requireNonNull(name, "name");
-        this.route = Objects.requireNonNull(route, "route");
-        this.line = Objects.requireNonNull(line, "line");
+        this.name = name;
+        this.route = route;
+        this.line = line;
         this.stopPoints = Accept.list(stopPoints);
         this.serviceLegs = Accept.list(serviceLegs);
         this.box = this.serviceLegs.stream()

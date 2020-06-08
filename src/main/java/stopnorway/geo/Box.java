@@ -6,6 +6,8 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static stopnorway.geo.Points.point;
+
 public final class Box implements Serializable, Comparable<Box> {
 
     private final Point min;
@@ -22,7 +24,7 @@ public final class Box implements Serializable, Comparable<Box> {
 
         this.area =
                 this.min.distanceTo(this.max.lon(this.min)).toMeters() *
-                this.min.distanceTo(this.min.lon(this.max)).toMeters();
+                        this.min.distanceTo(this.min.lon(this.max)).toMeters();
     }
 
     public Point max() {
@@ -46,12 +48,12 @@ public final class Box implements Serializable, Comparable<Box> {
     }
 
     public Box combined(Box box) {
-        return Points.point(
-                Math.min(min().lat(), box.min().lat()),
-                Math.min(min().lon(), box.min().lon())
-        ).box(Points.point(
-                Math.max(max().lat(), box.max().lat()),
-                Math.max(max().lon(), box.max().lon())));
+        return point(
+                Math.min(min().intLat(), box.min().intLat()),
+                Math.min(min().intLon(), box.min().intLon())
+        ).box(point(
+                Math.max(max().intLat(), box.max().intLat()),
+                Math.max(max().intLon(), box.max().intLon())));
     }
 
     public Distance height() {
@@ -110,8 +112,11 @@ public final class Box implements Serializable, Comparable<Box> {
                                   IntStream.range(0, lonX).mapToObj(j -> {
                                       double lat = min.min().lat() + i * scaleLatSpan;
                                       double lon = min.min().lon() + j * scaleLonSpan;
-                                      return Points.point(lat, lon).box(
-                                              Points.point(lat + scaleLatSpan, lon + scaleLonSpan));
+
+                                      Point minCorner = point(lat, lon);
+                                      Point maxCorner = point(lat + scaleLatSpan, lon + scaleLonSpan);
+
+                                      return minCorner.box(maxCorner);
                                   }))
                 .flatMap(s -> s)
                 .map(box -> box.scaledTo(scale))
@@ -138,13 +143,15 @@ public final class Box implements Serializable, Comparable<Box> {
         if (min.isSouthwestOf(max)) {
             return new Point[] { min, max };
         }
-        double minLat = min.lat();
-        double minLon = min.lon();
-        double maxLon = max.lon();
-        double maxLat = max.lat();
+
+        int minLat = min.intLat();
+        int minLon = min.intLon();
+        int maxLon = max.intLon();
+        int maxLat = max.intLat();
+
         return new Point[] {
-                Points.point(Math.min(minLat, maxLat), Math.min(minLon, maxLon)),
-                Points.point(Math.max(minLat, maxLat), Math.max(minLon, maxLon))
+                point(Math.min(minLat, maxLat), Math.min(minLon, maxLon)),
+                point(Math.max(minLat, maxLat), Math.max(minLon, maxLon))
         };
     }
 }

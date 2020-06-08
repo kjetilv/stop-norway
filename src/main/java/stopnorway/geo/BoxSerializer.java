@@ -9,25 +9,14 @@ public final class BoxSerializer extends Serializer<Box> {
 
     @Override
     public void write(Kryo kryo, Output output, Box object) {
-        writePoint(kryo, output, object.min());
-        writePoint(kryo, output, object.max());
+        kryo.writeObject(output, object.min());
+        kryo.writeObject(output, object.max());
     }
 
     @Override
     public Box read(Kryo kryo, Input input, Class<? extends Box> type) {
-        Point min = readPoint(kryo, input);
-        Point max = readPoint(kryo, input);
+        Point min = kryo.readObject(input, CodedPoint.class);
+        Point max = kryo.readObject(input, CodedPoint.class);
         return min.box(max);
-    }
-
-    private Point readPoint(Kryo kryo, Input input) {
-        return input.readBoolean()
-                ? kryo.readObject(input, CodedPoint.class)
-                : kryo.readObject(input, DoublePoint.class);
-    }
-
-    private void writePoint(Kryo kryo, Output output, Point min) {
-        output.writeBoolean(min instanceof CodedPoint);
-        kryo.writeObject(output, min);
     }
 }

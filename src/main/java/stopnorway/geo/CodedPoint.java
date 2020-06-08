@@ -2,23 +2,22 @@ package stopnorway.geo;
 
 public class CodedPoint extends AbstractPoint {
 
-    static final int DEFAULT_POW10 = 6;
+    public static final int DEFAULT_POW10 = 6;
 
-    static final int DEFAULT_DIMENSION = (int)Math.pow(10, DEFAULT_POW10);
-
-    private final int dimension;
+    public static final int DEFAULT_DIMENSION = (int) Math.pow(10, DEFAULT_POW10);
 
     private final int lat;
 
     private final int lon;
 
-    public CodedPoint(int dimension, double lat, double lon) {
-        this(dimension, scaledToInt(lat, dimension), scaledToInt(lon, dimension));
+    public CodedPoint(double lat, double lon) {
+        this(
+                scaledToInt(lat, DEFAULT_DIMENSION),
+                scaledToInt(lon, DEFAULT_DIMENSION));
     }
 
-    public CodedPoint(int dimension, int lat, int lon) {
+    public CodedPoint(int lat, int lon) {
 
-        this.dimension = dimension;
         this.lat = lat;
         this.lon = lon;
     }
@@ -26,7 +25,7 @@ public class CodedPoint extends AbstractPoint {
     @Override
     public Point downTo(Scale scale) {
         if (scale == Scale.INTEGER) {
-            return coded(lat - lat % dimension, lon - lon % dimension);
+            return coded(lat - lat % DEFAULT_DIMENSION, lon - lon % DEFAULT_DIMENSION);
         }
         return coded(
                 Math.floor(lat() * scale.getLat()) / scale.getLat(),
@@ -36,7 +35,8 @@ public class CodedPoint extends AbstractPoint {
     @Override
     public Point upTo(Scale scale) {
         if (scale == Scale.INTEGER) {
-            return coded(lat - lat % dimension + dimension, lon - lon % dimension + dimension);
+            return coded(lat - lat % DEFAULT_DIMENSION + DEFAULT_DIMENSION, lon - lon % DEFAULT_DIMENSION +
+                    DEFAULT_DIMENSION);
         }
         return coded(
                 Math.ceil(lat() * scale.getLat()) / scale.getLat(),
@@ -45,52 +45,48 @@ public class CodedPoint extends AbstractPoint {
 
     @Override
     public int compareTo(Point point) {
-        if (point instanceof CodedPoint) {
-            int latCompared = Integer.compare(lat, ((CodedPoint) point).lat);
-            return latCompared != 0 ? latCompared : Integer.compare(lon, ((CodedPoint) point).lon);
-        }
-        return super.compareTo(point);
+        int latCompared = Integer.compare(lat, ((CodedPoint) point).lat);
+        return latCompared != 0 ? latCompared : Integer.compare(lon, ((CodedPoint) point).lon);
     }
 
     @Override
     public boolean isSouthwestOf(Point point) {
-        if (point instanceof CodedPoint) {
-            CodedPoint cp = (CodedPoint) point;
-            return lat < cp.lat && lon < cp.lon;
-        }
-        return super.isSouthwestOf(point);
+        CodedPoint cp = (CodedPoint) point;
+        return lat < cp.lat && lon < cp.lon;
     }
 
     @Override
     public double lat() {
-        return 1.0d * this.lat / dimension;
+        return 1.0d * this.lat / DEFAULT_DIMENSION;
     }
 
     @Override
     public double lon() {
-        return 1.0d * this.lon / dimension;
+        return 1.0d * this.lon / DEFAULT_DIMENSION;
     }
 
     @Override
     public Point lat(Point lat) {
-        return coded(intLat(), intLon());
+        return coded(lat.intLat(), intLon());
     }
 
     @Override
     public Point lon(Point lon) {
-        return coded(intLat(), intLon());
+        return coded(intLat(), lon.intLon());
     }
 
-    int dimension() {
-        return dimension;
+    @Override
+    public int intLat() {
+        return lat;
     }
 
-    int intLon() {
+    @Override
+    public int intLon() {
         return lon;
     }
 
-    int intLat() {
-        return lat;
+    int dimension() {
+        return DEFAULT_DIMENSION;
     }
 
     @Override
@@ -105,11 +101,11 @@ public class CodedPoint extends AbstractPoint {
     }
 
     private Point coded(int lat, int lon) {
-        return new CodedPoint(dimension, lat, lon);
+        return new CodedPoint(lat, lon);
     }
 
     private int scaledToInt(double v) {
-        return scaledToInt(v, this.dimension);
+        return scaledToInt(v, DEFAULT_DIMENSION);
     }
 
     private static int scaledToInt(double v, int dimension) {

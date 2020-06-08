@@ -15,6 +15,6 @@ public class TestData {
     @NotNull
     public static Database getDatabase(Operator... operators) {
         Databases databases = new Databases(ZIP, Operator.class);
-        return databases.get(operators);
+        return databases.adhoc(operators);
     }
 }

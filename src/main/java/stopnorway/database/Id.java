@@ -7,7 +7,7 @@ import java.util.function.Consumer;
 
 public final class Id extends AbstractHashable {
 
-    private static final int ID_MARK = 3;
+    private static final int OP_MARK = 3;
 
     private final String operator;
 
@@ -60,12 +60,11 @@ public final class Id extends AbstractHashable {
     }
 
     public static Id parse(String attribute) {
-        int length = attribute.length();
-        int secondMark = attribute.indexOf(':', ID_MARK + 1);
+        int idMark = attribute.indexOf(':', OP_MARK + 1);
         return new Id(
-                attribute.substring(0, ID_MARK),
-                attribute.substring(ID_MARK + 1, secondMark),
-                attribute.substring(secondMark + 1, length));
+                attribute.substring(0, OP_MARK),
+                attribute.substring(OP_MARK + 1, idMark),
+                attribute.substring(idMark + 1));
     }
 
     @Override
