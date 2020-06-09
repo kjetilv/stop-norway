@@ -22,6 +22,8 @@ public final class EntityParser<E extends Entity> {
 
     private final Class<E> type;
 
+    private final EntityMaker<E> entityMaker;
+
     private final Field[] fields;
 
     private final Attr[] attributes;
@@ -51,7 +53,8 @@ public final class EntityParser<E extends Entity> {
         this(
                 Objects.requireNonNull(type, "type"),
                 new QName(URI, type.getSimpleName()),
-                new ParseState<>(entityMaker),
+                entityMaker,
+                null,
                 fields,
                 attributes,
                 null);
@@ -60,6 +63,7 @@ public final class EntityParser<E extends Entity> {
     private EntityParser(
             Class<E> type,
             QName name,
+            EntityMaker<E> entityMaker,
             ParseState<E> state,
             Collection<Field> fields,
             Collection<Attr> attributes,
@@ -67,6 +71,7 @@ public final class EntityParser<E extends Entity> {
     ) {
         this.type = Objects.requireNonNull(type, "type");
         this.name = Objects.requireNonNull(name, "name");
+        this.entityMaker = entityMaker;
         this.fields = fields == null || fields.isEmpty()
                 ? null
                 : fields.toArray(new Field[0]);
@@ -77,7 +82,7 @@ public final class EntityParser<E extends Entity> {
                 ? null
                 : subParsers.keySet().toArray(Sublist[]::new);
         this.subParsers = Accept.map(subParsers);
-        this.state = state;
+        this.state = state == null ? new ParseState<>() : state;
     }
 
     public void digest(XMLEvent event) {
@@ -107,6 +112,7 @@ public final class EntityParser<E extends Entity> {
             return new EntityParser<>(
                     type,
                     name,
+                    entityMaker,
                     state,
                     fields == null ? null : Arrays.asList(fields),
                     attributes == null ? null : Arrays.asList(attributes),
@@ -120,16 +126,12 @@ public final class EntityParser<E extends Entity> {
         return getClass().getSimpleName() + "[" + name + "/" + Arrays.toString(fields) + "]";
     }
 
-    public Collection<Entity> get() {
+    Collection<Entity> get() {
         return get(false);
     }
 
-    public Collection<Entity> get(boolean reset) {
+    Collection<Entity> get(boolean reset) {
         return state.get(reset);
-    }
-
-    public int count() {
-        return state.count();
     }
 
     private void delegate(XMLEvent event) {
@@ -163,14 +165,14 @@ public final class EntityParser<E extends Entity> {
     private void processContents(XMLEvent event) {
         if (state.isLookingForField(DataType.Content)) {
             String contents = event.asCharacters().getData();
-            state.setFieldContents(contents);
+            state.setContents(contents);
         }
     }
 
     private void processEnd(EndElement endElement) {
         QName elementName = endElement.getName();
         if (this.name.equals(elementName)) {
-            state.completeEntityBuild();
+            state.completeEntityBuild(entityMaker);
             return;
         }
         Field matchingField = match(fields, elementName);

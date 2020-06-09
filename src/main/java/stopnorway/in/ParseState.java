@@ -9,81 +9,88 @@ import java.util.stream.Stream;
 
 class ParseState<E extends Entity> {
 
-    private final EntityMaker<E> entityMaker;
-
     private Field activeField;
 
     private Sublist activeSublist;
 
-    private Id activeId;
+    private Id id;
 
-    private Map<Field, Id> fieldIds;
+    private Map<Field, Id> ids;
 
-    private Map<Field, String> fieldContents;
+    private Map<Field, String> contents;
 
-    private Map<Attr, String> attributeContents;
+    private Map<Attr, String> attributes;
 
     private Map<Sublist, Collection<?>> sublists;
 
     private Collection<Entity> parsedEntities;
-
-    ParseState(EntityMaker<E> entityMaker) {
-
-        this.entityMaker = entityMaker;
-    }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + "[" + Stream.of(
                 Stream.of(parsedEntities(false).size() + " parsed"),
                 activeField == null ? Stream.<String>empty() : Stream.of("activeField: " + activeField),
-                activeId == null ? Stream.<String>empty() : Stream.of("activeId: " + activeId),
-                fieldIds == null ? Stream.<String>empty() : Stream.of("ids: " + fieldIds),
-                fieldContents == null ? Stream.<String>empty() : Stream.of("strings: " + fieldContents)
+                id == null ? Stream.<String>empty() : Stream.of("activeId: " + id),
+                ids == null ? Stream.<String>empty() : Stream.of("ids: " + ids),
+                contents == null ? Stream.<String>empty() : Stream.of("strings: " + contents)
         ).flatMap(s -> s).collect(Collectors.joining(", ")) + "]";
     }
 
-    public void reset() {
+    void reset() {
         parsedEntities = null;
     }
 
-    public void absorb(Collection<Entity> idMap) {
+    void absorb(Collection<Entity> idMap) {
         parsedEntities(true).addAll(idMap);
     }
 
-    public int count() {
+    int count() {
         return parsedEntities(false).size();
     }
 
-    public void setAttribute(Attr attribute, String value) {
-        if (attributeContents == null) {
-            attributeContents = new EnumMap<>(Attr.class);
+    void setAttribute(Attr attribute, String value) {
+        if (attributes == null) {
+            attributes = new EnumMap<>(Attr.class);
         }
-        attributeContents.put(attribute, value);
+        attributes.put(attribute, value);
     }
 
-    public boolean isBuildingList(Sublist sublist) {
+    boolean isBuildingList(Sublist sublist) {
         return this.activeSublist != null && this.activeSublist == sublist;
     }
 
-    void completeEntityBuild() {
-        if (activeId == null) {
-            throw new IllegalStateException(this + " has no active id");
+    Id getId() {
+        return Objects.requireNonNull(id, "id");
+    }
+
+    Id getId(Field field) {
+        return ids == null ? null : ids.get(field);
+    }
+
+    String getContent(Field field) {
+        return contents == null ? null : contents.get(field);
+    }
+
+    int getIntAttribute(Attr attr) {
+        if (attributes == null) {
+            throw new IllegalArgumentException(this + ": Not found: " + attr);
         }
-        try {
-            EntityData data = extractEntityData();
-            E entity = entityMaker.entity(data);
-            parsedEntities(true).add(entity);
-        } finally {
-            activeId = null;
-        }
+        return toInt(attr, attributes.get(attr));
+    }
+
+    Collection<?> getSublist(Sublist sublist) {
+        return sublists == null ? null : sublists.get(sublist);
+    }
+
+    void completeEntityBuild(EntityMaker<E> entityMaker) {
+        completeWith(entityMaker);
     }
 
     void startBuildingEntity(Id id) {
-        if (this.activeId != null) {
+        if (this.id != null) {
             throw new IllegalStateException(this + " is already building, received: " + id);
         }
-        this.activeId = id;
+        this.id = id;
     }
 
     void startBuildingList(Sublist sublist) {
@@ -93,16 +100,7 @@ class ParseState<E extends Entity> {
     @SuppressWarnings("unchecked")
     <S> void completeList(Sublist sublist, Collection<S> elements) {
         if (this.activeSublist == sublist) {
-            if (sublists == null) {
-                sublists = new EnumMap<>(Sublist.class);
-            }
-            sublists.compute(activeSublist, (sublist1, objects) -> {
-                if (objects == null) {
-                    return elements instanceof LinkedList<?> ? elements : new LinkedList<>(elements);
-                }
-                ((Collection<S>) objects).addAll(elements);
-                return objects;
-            });
+            store(elements);
             this.activeSublist = null;
         } else {
             throw new IllegalStateException(this + " is not bulding " + sublist);
@@ -118,7 +116,7 @@ class ParseState<E extends Entity> {
     }
 
     boolean isBuildingEntity() {
-        return activeId != null;
+        return id != null;
     }
 
     boolean isLookingForField(DataType type) {
@@ -137,10 +135,10 @@ class ParseState<E extends Entity> {
 
     Collection<Entity> get(boolean clear) {
         if (activeField == null ||
-                activeId == null ||
-                fieldIds == null ||
-                fieldContents == null ||
-                attributeContents == null
+                id == null ||
+                ids == null ||
+                contents == null ||
+                attributes == null
         ) {
             Collection<Entity> entities = parsedEntities(false);
             if (clear) {
@@ -155,16 +153,16 @@ class ParseState<E extends Entity> {
         if (activeField == null) {
             throw new IllegalStateException(this + " cannot set to unknown field: " + id);
         }
-        if (fieldIds == null) {
-            fieldIds = new EnumMap<>(Field.class);
+        if (ids == null) {
+            ids = new EnumMap<>(Field.class);
         }
-        if (fieldIds.containsKey(activeField)) {
+        if (ids.containsKey(activeField)) {
             throw new IllegalArgumentException(this + " already contains value for " + activeField);
         }
-        fieldIds.put(activeField, id);
+        ids.put(activeField, id);
     }
 
-    void setFieldContents(String contents) {
+    void setContents(String contents) {
         if (this.activeField == null) {
             throw new IllegalStateException(this + " cannot append to unknown field: '" + contents + "''");
         }
@@ -175,43 +173,58 @@ class ParseState<E extends Entity> {
         if (contents == null || contents.isBlank()) {
             return;
         }
-        if (fieldContents == null) {
-            fieldContents = new EnumMap<>(Field.class);
+        if (this.contents == null) {
+            this.contents = new EnumMap<>(Field.class);
         }
-        fieldContents.compute(
+        this.contents.compute(
                 activeField,
                 (field, s) -> s == null ? contents : s + contents);
+    }
+
+    @SuppressWarnings("unchecked")
+    private <S> void store(Collection<S> elements) {
+        if (sublists == null) {
+            sublists = new EnumMap<>(Sublist.class);
+        }
+        Collection<?> storedElements = elements instanceof LinkedList<?>
+                ? elements
+                : new LinkedList<>(elements);
+        Collection<S> existing = (Collection<S>) sublists.put(activeSublist, storedElements);
+        if (existing != null) {
+            existing.addAll(elements);
+            sublists.put(activeSublist, existing);
+        }
+    }
+
+    private void completeWith(EntityMaker<E> entityMaker) {
+        if (id == null) {
+            throw new IllegalStateException(this + " has no active id");
+        }
+        try {
+            parsedEntities(true).add(entityMaker.entity(this));
+        } finally {
+            id = null;
+            sublists = null;
+            ids = null;
+            contents = null;
+            attributes = null;
+        }
+    }
+
+    private int toInt(Enum<?> field, String value) {
+        if (value == null) {
+            throw new IllegalStateException("No int value: " + field);
+        }
+        try {
+            return Integer.parseInt(value);
+        } catch (Exception e) {
+            throw new IllegalStateException("Unexpected int value: " + value, e);
+        }
     }
 
     private Collection<Entity> parsedEntities(boolean req) {
         return this.parsedEntities != null ? parsedEntities
                 : req ? (this.parsedEntities = new LinkedList<>())
                         : Collections.emptyList();
-    }
-
-    private EntityData extractEntityData() {
-        try {
-            return new EntityData(
-                    this.activeId,
-                    this.fieldIds == null
-                            ? Collections.emptyMap()
-                            : this.fieldIds,
-                    this.fieldContents == null
-                            ? Collections.emptyMap()
-                            : this.fieldContents,
-                    this.attributeContents == null
-                            ? Collections.emptyMap()
-                            : attributeContents,
-                    this.sublists == null
-                            ? Collections.emptyMap()
-                            : this.sublists);
-        } catch (Exception e) {
-            throw new IllegalStateException(this + " could not build", e);
-        } finally {
-            sublists = null;
-            fieldIds = null;
-            fieldContents = null;
-            attributeContents = null;
-        }
     }
 }

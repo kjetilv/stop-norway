@@ -4,5 +4,5 @@ import stopnorway.database.Entity;
 
 public interface EntityMaker<E extends Entity> {
 
-    E entity(EntityData data);
+    Entity entity(ParseState<E> data);
 }

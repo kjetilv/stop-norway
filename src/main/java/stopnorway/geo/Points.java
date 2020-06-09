@@ -50,16 +50,16 @@ public final class Points {
         }
     }
 
-    private static int toInt(char[] v, int index) {
+    private static int toInt(char[] chars, int index) {
         int value = 0;
         boolean parsingDecimals = false;
         int decimalDimensions = DECIMAL_DIMENSIONS;
         for (int i = 0; i < index; i++) {
-            if (v[i] == '.') {
+            if (chars[i] == '.') {
                 parsingDecimals = true;
                 value *= CodedPoint.DEFAULT_DIMENSION;
             } else {
-                int increment = v[i] - ASCII_ZERO;
+                int increment = chars[i] - ASCII_ZERO;
                 if (parsingDecimals) {
                     value += decimalDimensions * increment;
                     decimalDimensions /= 10;
@@ -72,15 +72,11 @@ public final class Points {
         if (!parsingDecimals) {
             value *= CodedPoint.DEFAULT_DIMENSION;
         }
-        return round(value, v, index);
+        return round(value, chars, index);
     }
 
-    private static int round(int value, char[] v, int index) {
-        if (index >= 10) {
-            int roundIndex = 10;
-            if (v[roundIndex] < ASCII_ZERO + 5) {
-                return value;
-            }
+    private static int round(int value, char[] chars, int index) {
+        if (index >= 10 && chars[10] > ASCII_ZERO + 4) {
             return value + 1;
         }
         return value;
