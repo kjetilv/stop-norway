@@ -15,7 +15,7 @@ public class TimetabledPassingTime extends Entity {
     public TimetabledPassingTime(Id id, Id stopPointInJourneyPatternRef, String departureTime) {
         super(id);
         this.stopPointInJourneyPatternRef = stopPointInJourneyPatternRef;
-        this.departureTime = departureTime == null || departureTime.isBlank() ? null : departureTime;
+        this.departureTime = departureTime;
     }
 
     public String getDepartureTime() {
@@ -23,7 +23,7 @@ public class TimetabledPassingTime extends Entity {
     }
 
     public LocalTime getParsedDepartureTime() {
-        return departureTime == null ? null : LocalTime.parse(departureTime);
+        return departureTime == null || departureTime.isBlank() ? null : LocalTime.parse(departureTime);
     }
 
     public Id getStopPointInJourneyPatternRef() {

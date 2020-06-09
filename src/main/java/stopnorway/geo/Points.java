@@ -11,7 +11,11 @@ public final class Points {
 
     static final String[] NONE = {};
 
+    static final int ASCII_ZERO = 48;
+
     private static final int DIGITS = 6;
+
+    static final int DECIMAL_DIMENSIONS = 100_000;
 
     private Points() {
 
@@ -37,26 +41,65 @@ public final class Points {
         return str == null || str.isBlank() ? Collections.emptyList() : points(str.trim());
     }
 
-    private static int toInt(char[] v, int i) {
-        return 0;
+    public static Point charPoint(char[] lat, int latIndex, char[] lon, int lonIndex) {
+        try {
+            return new CodedPoint(toInt(lat, latIndex), toInt(lon, lonIndex));
+        } catch (Exception e) {
+            throw new IllegalArgumentException
+                    ("Failed to point out " + Arrays.toString(lat) + " " + Arrays.toString(lon), e);
+        }
+    }
+
+    private static int toInt(char[] v, int index) {
+        int value = 0;
+        boolean parsingDecimals = false;
+        int decimalDimensions = DECIMAL_DIMENSIONS;
+        for (int i = 0; i < index; i++) {
+            if (v[i] == '.') {
+                parsingDecimals = true;
+                value *= CodedPoint.DEFAULT_DIMENSION;
+            } else {
+                int increment = v[i] - ASCII_ZERO;
+                if (parsingDecimals) {
+                    value += decimalDimensions * increment;
+                    decimalDimensions /= 10;
+                } else {
+                    value *= 10;
+                    value += increment;
+                }
+            }
+        }
+        if (!parsingDecimals) {
+            value *= CodedPoint.DEFAULT_DIMENSION;
+        }
+        return round(value, v, index);
+    }
+
+    private static int round(int value, char[] v, int index) {
+        if (index >= 10) {
+            int roundIndex = 10;
+            if (v[roundIndex] < ASCII_ZERO + 5) {
+                return value;
+            }
+            return value + 1;
+        }
+        return value;
     }
 
     private static List<Point> points(String str) {
         int length = str.length();
-        List<Point> points = new ArrayList<>(str.length() / 16);
+        List<Point> points = new ArrayList<>(str.length() / 10);
         char[] lat = new char[30];
         char[] lon = new char[30];
-        boolean buildingLat = true;
         int latIndex = 0;
-        boolean buildingLon = false;
         int lonIndex = 0;
+        boolean buildingLat = true;
+        boolean buildingLon = false;
         for (int i = 0; i < length; i++) {
             char c = str.charAt(i);
             if (c == ' ' || c == '\t') {
                 if (buildingLon) {
-                    points.add(point(
-                            new String(lat, 0, latIndex),
-                            new String(lon, 0, lonIndex)));
+                    points.add(charPoint(lat, latIndex, lon, lonIndex));
                     buildingLat = true;
                     buildingLon = false;
                     latIndex = 0;
@@ -72,20 +115,9 @@ public final class Points {
             }
         }
         if (buildingLon) {
-            points.add(point(
-                    new String(lat, 0, latIndex),
-                    new String(lon, 0, lonIndex)));
+            points.add(charPoint(lat, latIndex, lon, lonIndex));
         }
         return points;
-    }
-
-    public static Point charPoint(char[] lat, int latIndex, char[] lon, int lonIndex) {
-        try {
-            return new CodedPoint(toInt(lat, latIndex), toInt(lon, lonIndex));
-        } catch (Exception e) {
-            throw new IllegalArgumentException
-                    ("Failed to point out " + Arrays.toString(lat) + " " + Arrays.toString(lon), e);
-        }
     }
 
     private static int toInt(String string) {
