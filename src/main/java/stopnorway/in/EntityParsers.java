@@ -159,5 +159,4 @@ public final class EntityParsers {
                                 data.getId(ProjectedPointRef)),
                         ProjectedPointRef));
     }
-
 }

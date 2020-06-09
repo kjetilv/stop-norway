@@ -96,11 +96,6 @@ public final class DatabaseImpl implements Database, Serializable {
     }
 
     @Override
-    public Stream<Entity> getEntities() {
-        return typedEntities.values().stream().map(Map::values).flatMap(Collection::stream);
-    }
-
-    @Override
     public String toString() {
         return getClass().getSimpleName() +
                 "[" + box +

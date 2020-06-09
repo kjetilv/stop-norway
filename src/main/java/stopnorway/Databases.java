@@ -205,7 +205,7 @@ public final class Databases {
         register(
                 kryo,
                 LinkSequenceProjection.class,
-                new LinkSequenceProjectionSerializer(CodedPoint.DEFAULT_DIMENSION));
+                new LinkSequenceProjectionSerializer());
         register(kryo, PointOnRoute.class, new PointOnRouteSerializer());
         register(kryo, PointProjection.class, new PointProjectionSerializer());
         register(kryo, Route.class, new RouteSerializer());

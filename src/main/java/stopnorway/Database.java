@@ -2,13 +2,11 @@ package stopnorway;
 
 import stopnorway.data.ScheduledTrip;
 import stopnorway.data.TripDefinition;
-import stopnorway.database.Entity;
 import stopnorway.geo.Box;
 import stopnorway.geo.Scale;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.stream.Stream;
 
 public interface Database {
 
@@ -29,6 +27,4 @@ public interface Database {
     Collection<ScheduledTrip> getScheduledTrips(Collection<Box> boxes);
 
     int getSize();
-
-    Stream<Entity> getEntities();
 }
