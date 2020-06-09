@@ -13,23 +13,23 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public final class ScheduledTrip extends AbstractIdentified implements Boxed, Named, Comparable<ScheduledTrip> {
+public final class Journey extends AbstractIdentified implements Boxed, Named, Comparable<Journey> {
 
-    private final TripDefinition tripDefinition;
+    private final JourneySpecification journeySpecification;
 
     private final Collection<ScheduledStop> scheduledStops;
 
     private final Box box;
 
-    public ScheduledTrip(
+    public Journey(
             Id serviceJourneyId,
-            TripDefinition tripDefinition,
+            JourneySpecification journeySpecification,
             Collection<ScheduledStop> scheduledStops
     ) {
         super(serviceJourneyId);
-        this.tripDefinition = tripDefinition;
+        this.journeySpecification = journeySpecification;
 
-        Collection<Id> scheduledStopPointRefs = tripDefinition.getStopPoints().stream()
+        Collection<Id> scheduledStopPointRefs = journeySpecification.getStopPoints().stream()
                 .map(Map.Entry::getValue)
                 .filter(Objects::nonNull)
                 .map(ScheduledStopPoint::getId)
@@ -42,7 +42,7 @@ public final class ScheduledTrip extends AbstractIdentified implements Boxed, Na
         this.scheduledStops = scheduledStopPointRefs.stream()
                 .map(id -> groups.get(id).removeFirst())
                 .collect(Collectors.toList());
-        this.box = this.tripDefinition.getBox().orElse(null);
+        this.box = this.journeySpecification.getBox().orElse(null);
     }
 
     @Override
@@ -67,11 +67,11 @@ public final class ScheduledTrip extends AbstractIdentified implements Boxed, Na
 
     @Override
     public String getName() {
-        return tripDefinition.getName();
+        return journeySpecification.getName();
     }
 
     @Override
-    public int compareTo(ScheduledTrip o) {
+    public int compareTo(Journey o) {
         return o.getStartTime().isEmpty() ? -1
                 : getStartTime().isEmpty() ? 1
                         : getStartTime().flatMap(localTime -> o.getStartTime().map(localTime::compareTo)).orElse(0);

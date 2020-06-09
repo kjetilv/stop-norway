@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import stopnorway.Database;
 import stopnorway.data.Operator;
-import stopnorway.data.ScheduledTrip;
+import stopnorway.data.Journey;
 import stopnorway.geo.Box;
 import stopnorway.geo.Point;
 import stopnorway.geo.Points;
@@ -44,7 +44,7 @@ class ParserTest extends ParserTestCase {
 
         assertThat(run.getTripDefinitions(flaamStasjon.scaledBox(Scale.DEFAULT))).hasSizeGreaterThan(11);
 
-        Collection<ScheduledTrip> scheduledTrips = run.getScheduledTrips(surroundingBox);
+        Collection<Journey> scheduledTrips = run.getJourneys(surroundingBox);
         assertThat(scheduledTrips).hasSizeGreaterThan(11);
     }
 }

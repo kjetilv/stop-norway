@@ -28,11 +28,11 @@ public final class DatabaseImpl implements Database, Serializable {
 
     private final Map<Class<? extends Entity>, Map<Id, Entity>> typedEntities;
 
-    private final Map<Id, TripDefinition> tripDefinitions;
+    private final Map<Id, JourneySpecification> journeySpecifications;
 
-    private final Map<Box, Collection<TripDefinition>> boxedTripDefinitions;
+    private final Map<Box, Collection<JourneySpecification>> boxedJourneySpecification;
 
-    private final Map<TripDefinition, Collection<ServiceJourney>> scheduledTrips;
+    private final Map<JourneySpecification, Collection<ServiceJourney>> journeys;
 
     private final int size;
 
@@ -51,24 +51,24 @@ public final class DatabaseImpl implements Database, Serializable {
         this.size = (int) this.typedEntities.values().stream().mapToLong(Map::size).sum();
         log.info("{} built from {} entities", this, size);
 
-        this.tripDefinitions = stream(JourneyPattern.class)
-                .map(this::tripDefinitions)
+        this.journeySpecifications = stream(JourneyPattern.class)
+                .map(this::journeySpecification)
                 .collect(Collectors.toMap(
-                        TripDefinition::getJourneyPatternId,
+                        JourneySpecification::getJourneyPatternId,
                         Function.identity()));
 
-        this.boxedTripDefinitions = new HashMap<>();
-        this.tripDefinitions.values()
+        this.boxedJourneySpecification = new HashMap<>();
+        this.journeySpecifications.values()
                 .forEach(def -> def.scaledBoxes(scale)
-                        .forEach(scaledBox -> add(this.boxedTripDefinitions, scaledBox, def)));
-        log.info("{} indexed {} trips in {} boxes", this, tripDefinitions.size(), boxedTripDefinitions.size());
+                        .forEach(scaledBox -> add(this.boxedJourneySpecification, scaledBox, def)));
+        log.info("{} indexed {} trips in {} boxes", this, journeySpecifications.size(), boxedJourneySpecification.size());
 
-        this.scheduledTrips = getEntities(ServiceJourney.class)
+        this.journeys = getEntities(ServiceJourney.class)
                 .collect(Collectors.groupingBy(
-                        serviceJourney -> tripDefinitions.get(serviceJourney.getJourneyPatternRef()),
+                        serviceJourney -> journeySpecifications.get(serviceJourney.getJourneyPatternRef()),
                         HashMap::new,
                         Collectors.toCollection(ArrayList::new)));
-        log.info("{} collected {} scheduled trips", this, this.scheduledTrips.size());
+        log.info("{} collected {} scheduled trips", this, this.journeys.size());
     }
 
     public Scale getScale() {
@@ -81,17 +81,17 @@ public final class DatabaseImpl implements Database, Serializable {
     }
 
     @Override
-    public Collection<TripDefinition> getTripDefinitions(Collection<Box> boxes) {
+    public Collection<JourneySpecification> getTripDefinitions(Collection<Box> boxes) {
         return streamTripDefinitions(boxes)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public Collection<ScheduledTrip> getScheduledTrips(Collection<Box> boxes) {
+    public Collection<Journey> getJourneys(Collection<Box> boxes) {
         return streamTripDefinitions(boxes)
-                .flatMap(tripDefinition -> scheduledTrips.get(tripDefinition).stream())
+                .flatMap(tripDefinition -> journeys.get(tripDefinition).stream())
                 .map(serviceJourney ->
-                             scheduledTrip(serviceJourney, tripDefinitions::get))
+                             journey(serviceJourney, journeySpecifications::get))
                 .collect(Collectors.toList());
     }
 
@@ -116,17 +116,17 @@ public final class DatabaseImpl implements Database, Serializable {
         return typedEntities;
     }
 
-    private Stream<TripDefinition> streamTripDefinitions(Collection<Box> boxes) {
+    private Stream<JourneySpecification> streamTripDefinitions(Collection<Box> boxes) {
         return scaled(boxes)
                 .flatMap(scaledBox ->
-                                 boxed(this.boxedTripDefinitions, scaledBox))
+                                 boxed(this.boxedJourneySpecification, scaledBox))
                 .filter(tripDefinition ->
                                 overlapping(boxes, tripDefinition))
                 .distinct();
     }
 
-    private ScheduledTrip scheduledTrip(ServiceJourney serviceJourney, Function<Id, TripDefinition> patterns) {
-        return new ScheduledTrip(
+    private Journey journey(ServiceJourney serviceJourney, Function<Id, JourneySpecification> patterns) {
+        return new Journey(
                 serviceJourney.getId(),
                 patterns.apply(serviceJourney.getJourneyPatternRef()),
                 serviceJourney.getPassingTimes().stream()
@@ -184,10 +184,10 @@ public final class DatabaseImpl implements Database, Serializable {
         throw new IllegalArgumentException("Not a " + type + " id: " + id);
     }
 
-    private TripDefinition tripDefinitions(JourneyPattern journeyPattern) {
+    private JourneySpecification journeySpecification(JourneyPattern journeyPattern) {
         Route route = getEntity(Route.class, journeyPattern.getRouteRef());
         Line line = route == null ? null : getEntity(Line.class, route.getLineRef());
-        return new TripDefinition(
+        return new JourneySpecification(
                 journeyPattern.getId(),
                 journeyPattern.getName(),
                 route,

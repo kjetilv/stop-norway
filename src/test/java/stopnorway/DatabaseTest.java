@@ -2,7 +2,7 @@ package stopnorway;
 
 import org.junit.jupiter.api.Test;
 import stopnorway.data.Operator;
-import stopnorway.data.TripDefinition;
+import stopnorway.data.JourneySpecification;
 import stopnorway.geo.Distance;
 import stopnorway.geo.Point;
 import stopnorway.geo.Points;
@@ -27,7 +27,7 @@ class DatabaseTest {
                 Points.point(59.912921, 10.738953)
         };
         Distance accuracy = Distance.of(10, Unit.M);
-        Collection<TripDefinition> tripDefinitions = database.getTripDefinitions(
+        Collection<JourneySpecification> tripDefinitions = database.getTripDefinitions(
                 Arrays.stream(points)
                         .map(point -> point.squareBox(accuracy))
                         .collect(Collectors.toList()));

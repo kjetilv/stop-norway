@@ -6,11 +6,11 @@ import com.esotericsoftware.kryo.io.Output;
 import stopnorway.database.AbstractSerializer;
 import stopnorway.entur.*;
 
-public class TripDefinitionSerializer extends AbstractSerializer<TripDefinition> {
+public class JourneySpecificationSerializer extends AbstractSerializer<JourneySpecification> {
 
     @Override
     public void write(
-            Kryo kryo, Output output, TripDefinition object
+            Kryo kryo, Output output, JourneySpecification object
     ) {
         writeId(kryo, output, object.getJourneyPatternId());
         writeString(output, object.getName());
@@ -21,10 +21,10 @@ public class TripDefinitionSerializer extends AbstractSerializer<TripDefinition>
     }
 
     @Override
-    public TripDefinition read(
-            Kryo kryo, Input input, Class<? extends TripDefinition> type
+    public JourneySpecification read(
+            Kryo kryo, Input input, Class<? extends JourneySpecification> type
     ) {
-        return new TripDefinition(
+        return new JourneySpecification(
                 readId(kryo, input),
                 readString(input),
                 kryo.readObject(input, Route.class),

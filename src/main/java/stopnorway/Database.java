@@ -1,7 +1,7 @@
 package stopnorway;
 
-import stopnorway.data.ScheduledTrip;
-import stopnorway.data.TripDefinition;
+import stopnorway.data.Journey;
+import stopnorway.data.JourneySpecification;
 import stopnorway.geo.Box;
 import stopnorway.geo.Scale;
 
@@ -14,17 +14,17 @@ public interface Database {
 
     Scale getScale();
 
-    default Collection<TripDefinition> getTripDefinitions(Box... boxes) {
+    default Collection<JourneySpecification> getTripDefinitions(Box... boxes) {
         return getTripDefinitions(Arrays.asList(boxes));
     }
 
-    Collection<TripDefinition> getTripDefinitions(Collection<Box> boxes);
+    Collection<JourneySpecification> getTripDefinitions(Collection<Box> boxes);
 
-    default Collection<ScheduledTrip> getScheduledTrips(Box... boxes) {
-        return getScheduledTrips(Arrays.asList(boxes));
+    default Collection<Journey> getJourneys(Box... boxes) {
+        return getJourneys(Arrays.asList(boxes));
     }
 
-    Collection<ScheduledTrip> getScheduledTrips(Collection<Box> boxes);
+    Collection<Journey> getJourneys(Collection<Box> boxes);
 
     int getSize();
 }

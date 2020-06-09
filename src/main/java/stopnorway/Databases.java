@@ -217,7 +217,7 @@ public final class Databases {
         register(kryo, StopPointInJourneyPattern.class, new StopPointInJourneyPatternSerializer());
         register(kryo, TimetabledPassingTime.class, new TimetabledPassingTimeSerializer());
 
-        register(kryo, TripDefinition.class, new TripDefinitionSerializer());
+        register(kryo, JourneySpecification.class, new JourneySpecificationSerializer());
         register(kryo, ServiceLeg.class, new ServiceLegSerializer());
 
         return kryo;

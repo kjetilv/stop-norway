@@ -17,7 +17,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class TripDefinition extends AbstractIdentified implements Serializable, Boxed, Named {
+public class JourneySpecification extends AbstractIdentified implements Serializable, Boxed, Named {
 
     private final String name;
 
@@ -31,7 +31,7 @@ public class TripDefinition extends AbstractIdentified implements Serializable, 
 
     private final Box box;
 
-    public TripDefinition(
+    public JourneySpecification(
             Id journeyPatternId,
             String name,
             Route route,
