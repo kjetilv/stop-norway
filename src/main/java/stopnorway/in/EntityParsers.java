@@ -78,7 +78,7 @@ public final class EntityParsers {
                         StopPointInJourneyPattern.class,
                         data -> new StopPointInJourneyPattern(
                                 data.getId(),
-                                data.getIntAttribute(order),
+                                data.getOrder(),
                                 data.getId(ScheduledStopPointRef)),
                         List.of(ScheduledStopPointRef),
                         List.of(order))
@@ -88,7 +88,7 @@ public final class EntityParsers {
                         ServiceLinkInJourneyPattern.class,
                         data -> new ServiceLinkInJourneyPattern(
                                 data.getId(),
-                                data.getIntAttribute(order),
+                                data.getOrder(),
                                 data.getId(ServiceLinkRef)),
                         List.of(ServiceLinkRef),
                         List.of(order)));

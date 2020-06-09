@@ -71,11 +71,32 @@ class ParseState<E extends Entity> {
         return contents == null ? null : contents.get(field);
     }
 
-    int getIntAttribute(Attr attr) {
+    int getOrder() {
         if (attributes == null) {
-            throw new IllegalArgumentException(this + ": Not found: " + attr);
+            throw new IllegalArgumentException(this + ": Not found: " + Attr.order);
         }
-        return toInt(attr, attributes.get(attr));
+        String value = attributes.get(Attr.order);
+        if (value == null) {
+            throw new IllegalStateException("No int value: " + Attr.order);
+        }
+        try {
+            return toInt(value.trim());
+        } catch (Exception e) {
+            throw new IllegalStateException("Unexpected int value: " + value, e);
+        }
+    }
+
+    private int toInt(String value) {
+        int length = value.length();
+        if (length == 1) {
+            return value.charAt(0) - 48;
+        }
+        int v = 0;
+        for (int i = 0; i < length; i++) {
+            v *= 10;
+            v += value.charAt(i) - 48;
+        }
+        return v;
     }
 
     Collection<?> getSublist(Sublist sublist) {
@@ -97,7 +118,6 @@ class ParseState<E extends Entity> {
         activeSublist = sublist;
     }
 
-    @SuppressWarnings("unchecked")
     <S> void completeList(Sublist sublist, Collection<S> elements) {
         if (this.activeSublist == sublist) {
             store(elements);
@@ -208,17 +228,6 @@ class ParseState<E extends Entity> {
             ids = null;
             contents = null;
             attributes = null;
-        }
-    }
-
-    private int toInt(Enum<?> field, String value) {
-        if (value == null) {
-            throw new IllegalStateException("No int value: " + field);
-        }
-        try {
-            return Integer.parseInt(value);
-        } catch (Exception e) {
-            throw new IllegalStateException("Unexpected int value: " + value, e);
         }
     }
 
