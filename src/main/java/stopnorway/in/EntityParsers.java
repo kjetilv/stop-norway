@@ -58,8 +58,16 @@ public final class EntityParsers {
                         data -> new TimetabledPassingTime(
                                 data.getId(),
                                 data.getId(StopPointInJourneyPatternRef),
-                                data.getContent(DepartureTime)),
-                        List.of(DepartureTime, StopPointInJourneyPatternRef)));
+                                data.getContent(ArrivalTime),
+                                data.getIntContent(ArrivalDayOffset, 0),
+                                data.getContent(DepartureTime),
+                                data.getIntContent(DepartureDayOffset, 0)),
+                        List.of(
+                                ArrivalTime,
+                                ArrivalDayOffset,
+                                DepartureTime,
+                                DepartureDayOffset,
+                                StopPointInJourneyPatternRef)));
     }
 
     static EntityParser<JourneyPattern> journeyPatternParser() {

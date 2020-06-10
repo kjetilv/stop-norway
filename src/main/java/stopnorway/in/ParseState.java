@@ -9,6 +9,8 @@ import java.util.stream.Stream;
 
 class ParseState<E extends Entity> {
 
+    private static final int ZERO_OFFSET = 48;
+
     private Field activeField;
 
     private Sublist activeSublist;
@@ -71,32 +73,26 @@ class ParseState<E extends Entity> {
         return contents == null ? null : contents.get(field);
     }
 
-    int getOrder() {
-        if (attributes == null) {
-            throw new IllegalArgumentException(this + ": Not found: " + Attr.order);
+    int getIntContent(Field field, int defaultValue) {
+        if (contents == null) {
+            return defaultValue;
         }
-        String value = attributes.get(Attr.order);
-        if (value == null) {
-            throw new IllegalStateException("No int value: " + Attr.order);
+        String content = contents.get(field);
+        if (content == null) {
+            return defaultValue;
         }
-        try {
-            return toInt(value.trim());
-        } catch (Exception e) {
-            throw new IllegalStateException("Unexpected int value: " + value, e);
-        }
+        return toInt(field, content, defaultValue, false);
     }
 
-    private int toInt(String value) {
-        int length = value.length();
-        if (length == 1) {
-            return value.charAt(0) - 48;
+    int getOrder() {
+        return toInt(Attr.order, getAttribute(Attr.order), 0, true);
+    }
+
+    String getAttribute(Attr attr) {
+        if (attributes == null) {
+            throw new IllegalArgumentException(this + ": Not found: " + attr);
         }
-        int v = 0;
-        for (int i = 0; i < length; i++) {
-            v *= 10;
-            v += value.charAt(i) - 48;
-        }
-        return v;
+        return attributes.get(attr);
     }
 
     Collection<?> getSublist(Sublist sublist) {
@@ -154,12 +150,7 @@ class ParseState<E extends Entity> {
     }
 
     Collection<Entity> get(boolean clear) {
-        if (activeField == null ||
-                id == null ||
-                ids == null ||
-                contents == null ||
-                attributes == null
-        ) {
+        if (activeField == null || id == null || ids == null || contents == null || attributes == null) {
             Collection<Entity> entities = parsedEntities(false);
             if (clear) {
                 reset();
@@ -199,6 +190,35 @@ class ParseState<E extends Entity> {
         this.contents.compute(
                 activeField,
                 (field, s) -> s == null ? contents : s + contents);
+    }
+
+    private int toInt(EnumMatch en, String value, int defaultValue, boolean required) {
+        if (value == null) {
+            if (required) {
+                throw new IllegalStateException("No int value: " + en);
+            }
+            return defaultValue;
+        }
+        return toInt(value.trim());
+    }
+
+    private int toInt(String value) {
+        if (value.equals("0")) {
+            return 0;
+        }
+        if (value.equals("1")) {
+            return 1;
+        }
+        int length = value.length();
+        if (length == 1) {
+            return value.charAt(0) - ZERO_OFFSET;
+        }
+        int v = 0;
+        for (int i = 0; i < length; i++) {
+            v *= 10;
+            v += value.charAt(i) - ZERO_OFFSET;
+        }
+        return v;
     }
 
     @SuppressWarnings("unchecked")

@@ -6,8 +6,7 @@ import stopnorway.database.Id;
 import stopnorway.database.Named;
 import stopnorway.entur.ScheduledStopPoint;
 import stopnorway.geo.Box;
-import stopnorway.geo.Scale;
-import stopnorway.geo.TemporalBox;
+import stopnorway.geo.Timespan;
 import stopnorway.util.Safe;
 
 import java.time.Duration;
@@ -91,18 +90,18 @@ public final class Journey extends AbstractIdentified implements Boxed, Named, C
                         : getStartTime().flatMap(localTime -> o.getStartTime().map(localTime::compareTo)).orElse(0);
     }
 
-    public Stream<TemporalBox> getTemporalBoxes(Scale scale, Duration time) {
+    public Stream<Timespan> getTimespans(Duration duration) {
         return getStartTime()
                 .flatMap(startTime -> getEndTime()
                         .map(endTime -> journeySpecification.getServiceLegs().stream()
                                 .map(Map.Entry::getValue)
                                 .flatMap(serviceLeg -> serviceLeg.getTemporalBoxes(
-                                        startTime, endTime, time, scale))))
+                                        startTime, endTime, duration))))
                 .orElseGet(Stream::empty);
     }
 
-    boolean overlaps(TemporalBox temporalBox) {
-        return overlaps(temporalBox.getBox()) && getStartTime()
+    boolean overlaps(Timespan temporalBox) {
+        return getStartTime()
                 .flatMap(start -> getEndTime()
                         .map(end -> {
                             LocalTime boxStart = temporalBox.getStart();

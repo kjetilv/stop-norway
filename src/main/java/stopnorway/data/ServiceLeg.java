@@ -10,19 +10,17 @@ import stopnorway.entur.ServiceLink;
 import stopnorway.geo.Box;
 import stopnorway.geo.Point;
 import stopnorway.geo.Scale;
-import stopnorway.geo.TemporalBox;
+import stopnorway.geo.Timespan;
 
 import java.io.Serializable;
 import java.time.Duration;
 import java.time.LocalTime;
-import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public final class ServiceLeg extends AbstractIdentified implements Serializable, Ordered, Boxed {
@@ -83,25 +81,25 @@ public final class ServiceLeg extends AbstractIdentified implements Serializable
         return this.serviceLink.getEndPoint();
     }
 
-    public Stream<TemporalBox> getTemporalBoxes(
+    public Stream<Timespan> getTemporalBoxes(
             LocalTime start,
             LocalTime end,
-            Duration temporalAccuracy,
-            Scale spatialAccuray
+            Duration temporalAccuracy
     ) {
-        List<Point> points = this.serviceLink.getProjections()
+        List<Point> segment = this.serviceLink.getProjections()
                 .stream()
                 .map(LinkSequenceProjection::getTrajectory)
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());
-        long millisPerEdge = Duration.between(start, end).toNanos() / (points.size() - 1);
-        return IntStream.range(0, points.size())
-                .mapToObj(i -> points.get(i)
-                        .scaledBox(spatialAccuray)
-                        .during(
-                                start,
-                                start.plus(millisPerEdge * i, ChronoUnit.MILLIS))
-                        .scaledBox(temporalAccuracy));
+        long msPerPart = Duration.between(start, end).toNanos() / (segment.size() - 1);
+        return null;
+//        IntStream.range(0, points.size())
+//                .mapToObj(i -> points.get(i)
+//                        .scaledBox(spatialAccuray)
+//                        .during(
+//                                start,
+//                                start.plus(millisPerEdge * i, ChronoUnit.MILLIS))
+//                        .scaledBoxes(temporalAccuracy));
     }
 
     public int getOrder() {

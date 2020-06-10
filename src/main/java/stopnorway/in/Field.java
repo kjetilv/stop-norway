@@ -32,7 +32,13 @@ public enum Field implements EnumMatch {
 
     LineRef,
 
+    ArrivalTime,
+
     DepartureTime,
+
+    DepartureDayOffset,
+
+    ArrivalDayOffset,
 
     posList;
 

@@ -11,7 +11,7 @@ import stopnorway.entur.*;
 import stopnorway.geo.Box;
 import stopnorway.geo.Points;
 import stopnorway.geo.Scale;
-import stopnorway.geo.TemporalBox;
+import stopnorway.geo.Timespan;
 
 import java.io.Serializable;
 import java.time.Duration;
@@ -39,7 +39,7 @@ public final class DatabaseImpl implements Database, Serializable {
 
     private final Map<Box, Collection<JourneySpecification>> boxedJourneySpecification;
 
-    private final Map<TemporalBox, Collection<Journey>> temporallyBoxedJourney;
+    private final Map<Timespan, Collection<Journey>> timespannedJoureys;
 
     private final int size;
 
@@ -84,10 +84,10 @@ public final class DatabaseImpl implements Database, Serializable {
                         Journey::getId,
                         Function.identity()));
 
-        this.temporallyBoxedJourney = new HashMap<>();
+        this.timespannedJoureys = new HashMap<>();
         this.journeys.values()
-                .forEach(journey -> journey.getTemporalBoxes(scale, Duration.ofHours(1))
-                        .forEach(temporalBox -> add(this.temporallyBoxedJourney, temporalBox, journey)));
+                .forEach(journey -> journey.getTimespans(timescale)
+                        .forEach(temporalBox -> add(this.timespannedJoureys, temporalBox, journey)));
 
         log.info("{} collected {} scheduled trips", this, this.journeys.size());
     }
@@ -107,13 +107,14 @@ public final class DatabaseImpl implements Database, Serializable {
     }
 
     @Override
-    public Collection<Journey> getJourneys(Collection<TemporalBox> boxes) {
-        return temporallySpatiallyScaled(boxes)
-                .flatMap(scaledBox ->
-                        boxed(this.temporallyBoxedJourney, scaledBox))
-                .filter(journey ->
-                        overlapping(boxes, journey))
-                .collect(Collectors.toList());
+    public Collection<Journey> getJourneys(Collection<Timespan> boxes) {
+        return null;
+//        temporallySpatiallyScaled(boxes)
+//                .flatMap(scaledBox ->
+//                        boxed(this.temporallyBoxedJourney, scaledBox))
+//                .filter(journey ->
+//                        overlapping(boxes, journey))
+//                .collect(Collectors.toList());
     }
 
     @Override
@@ -173,7 +174,7 @@ public final class DatabaseImpl implements Database, Serializable {
         return boxes.stream().anyMatch(boxable::overlaps);
     }
 
-    private boolean overlapping(Collection<TemporalBox> boxes, Journey journey) {
+    private boolean overlapping(Collection<Timespan> boxes, Journey journey) {
         return boxes.stream().anyMatch(journey::overlaps);
     }
 
@@ -255,10 +256,10 @@ public final class DatabaseImpl implements Database, Serializable {
         return boxes.stream().flatMap(box -> box.getScaledBoxes(scale));
     }
 
-    @NotNull
-    private Stream<TemporalBox> temporallySpatiallyScaled(Collection<TemporalBox> boxes) {
-        return boxes.stream().flatMap(box -> box.scaledBoxes(scale, timescale));
-    }
+//    @NotNull
+//    private Stream<Timespan> temporallySpatiallyScaled(Collection<Timespan> boxes) {
+//        return boxes.stream().flatMap(box -> box.scaledBoxes(scale, timescale));
+//    }
 
     private <K, T> Stream<T> boxed(Map<K, Collection<T>> boxed, K box) {
         return Optional.ofNullable(boxed.get(box)).map(Collection::stream).stream().flatMap(s -> s);

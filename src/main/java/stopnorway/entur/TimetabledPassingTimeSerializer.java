@@ -11,7 +11,10 @@ public class TimetabledPassingTimeSerializer extends AbstractSerializer<Timetabl
     public void write(Kryo kryo, Output output, TimetabledPassingTime object) {
         writeId(kryo, output, object);
         writeNullableId(kryo, output, object.getStopPointInJourneyPatternRef());
+        writeString(output, object.getArrivalTime());
+        output.writeVarInt(object.getArrivalDayOffset(), true);
         writeString(output, object.getDepartureTime());
+        output.writeVarInt(object.getDepartureDayOffset(), true);
     }
 
     @Override
@@ -19,6 +22,9 @@ public class TimetabledPassingTimeSerializer extends AbstractSerializer<Timetabl
         return new TimetabledPassingTime(
                 readId(kryo, input),
                 readNullableId(kryo, input),
-                readString(input));
+                readString(input),
+                input.readVarInt(true),
+                readString(input),
+                input.readVarInt(true));
     }
 }

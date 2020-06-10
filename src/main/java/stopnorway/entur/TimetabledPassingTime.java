@@ -3,7 +3,6 @@ package stopnorway.entur;
 import stopnorway.database.Entity;
 import stopnorway.database.Id;
 
-import java.time.LocalTime;
 import java.util.function.Consumer;
 
 public class TimetabledPassingTime extends Entity {
@@ -12,18 +11,42 @@ public class TimetabledPassingTime extends Entity {
 
     private final String departureTime;
 
-    public TimetabledPassingTime(Id id, Id stopPointInJourneyPatternRef, String departureTime) {
+    private final int departureDayOffset;
+
+    private final String arrivalTime;
+
+    private final int arrivalDayOffset;
+
+    public TimetabledPassingTime(
+            Id id,
+            Id stopPointInJourneyPatternRef,
+            String arrivalTime,
+            int arrivalDayOffset,
+            String departureTime,
+            int departureDayOffset
+    ) {
         super(id);
         this.stopPointInJourneyPatternRef = stopPointInJourneyPatternRef;
+        this.arrivalTime = arrivalTime;
+        this.arrivalDayOffset = arrivalDayOffset;
         this.departureTime = departureTime;
+        this.departureDayOffset = departureDayOffset;
+    }
+
+    public String getArrivalTime() {
+        return arrivalTime;
+    }
+
+    public int getArrivalDayOffset() {
+        return arrivalDayOffset;
     }
 
     public String getDepartureTime() {
         return departureTime;
     }
 
-    public LocalTime getParsedDepartureTime() {
-        return departureTime == null || departureTime.isBlank() ? null : LocalTime.parse(departureTime);
+    public int getDepartureDayOffset() {
+        return departureDayOffset;
     }
 
     public Id getStopPointInJourneyPatternRef() {
@@ -39,7 +62,6 @@ public class TimetabledPassingTime extends Entity {
     @Override
     protected StringBuilder withStringBody(StringBuilder sb) {
         return super.withStringBody(sb)
-                .append("").append(stopPointInJourneyPatternRef)
-                .append(" @ ").append(departureTime);
+                .append(stopPointInJourneyPatternRef).append("@").append(departureTime);
     }
 }
