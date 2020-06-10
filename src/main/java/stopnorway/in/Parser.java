@@ -100,7 +100,7 @@ public final class Parser implements AutoCloseable {
         backgroundLogging.scheduleAtFixedRate(
                 () -> {
                     if (progress.live()) {
-                        log.info(progress.summary(Instant.now()));
+                        progress.summary(Instant.now());
                     }
                 },
                 2, 8, TimeUnit.SECONDS);

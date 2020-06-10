@@ -73,7 +73,9 @@ public final class Journey extends AbstractIdentified implements Boxed, Named, C
     @Override
     public String toString() {
         return getClass().getSimpleName() + "[" +
-                getName() + " " + getStartTime().map(LocalTime::toString).orElse("unknown") +
+                journeySpecification.getLineId().getId() + " " +
+                journeySpecification.getLine().getName() + " @" +
+                getStartTime().map(LocalTime::toString).orElse("unknown") +
                 "]";
     }
 
