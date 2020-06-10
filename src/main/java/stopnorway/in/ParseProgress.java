@@ -11,11 +11,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-public final class Progress {
-
-    private static final Logger log = LoggerFactory.getLogger(Progress.class);
+public final class ParseProgress {
 
     static final int K = 1024;
+
+    private static final Logger log = LoggerFactory.getLogger(ParseProgress.class);
 
     private static final int MB = K * K;
 
@@ -39,7 +39,7 @@ public final class Progress {
 
     private final long mbs;
 
-    public Progress(Collection<OperatorSource> sources, Collection<? extends Enum<?>> enums, Instant start) {
+    public ParseProgress(Collection<OperatorSource> sources, Collection<? extends Enum<?>> enums, Instant start) {
         this.sources = sources.size();
         this.length = sources.stream().mapToLong(OperatorSource::getLength).sum();
         this.enums = enums.size();
@@ -64,8 +64,7 @@ public final class Progress {
         return entities;
     }
 
-    public void
-    summary(Instant now) {
+    public void summary(Instant now) {
         if (!done.get()) {
             done.set(logSummary(now));
         }

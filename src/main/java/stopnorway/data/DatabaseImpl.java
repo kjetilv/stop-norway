@@ -39,7 +39,7 @@ public final class DatabaseImpl implements Database, Serializable {
 
     private final Map<Box, Collection<JourneySpecification>> boxedJourneySpecification;
 
-    private final Map<Timespan, Collection<Journey>> timespannedJoureys;
+    private final Map<Timespan, Collection<Journey>> timespannedJourneys;
 
     private final int size;
 
@@ -58,6 +58,7 @@ public final class DatabaseImpl implements Database, Serializable {
         this.timescale = timescale;
         this.typedEntities = typedEntities;
         this.size = (int) this.typedEntities.values().stream().mapToLong(Map::size).sum();
+
         log.info("{} built from {} entities", this, size);
 
         this.journeySpecifications = stream(JourneyPattern.class)
@@ -84,10 +85,10 @@ public final class DatabaseImpl implements Database, Serializable {
                         Journey::getId,
                         Function.identity()));
 
-        this.timespannedJoureys = new HashMap<>();
+        this.timespannedJourneys = new HashMap<>();
         this.journeys.values()
                 .forEach(journey -> journey.scaledTimespans(timescale)
-                        .forEach(timespan -> add(this.timespannedJoureys, timespan, journey)));
+                        .forEach(timespan -> add(this.timespannedJourneys, timespan, journey)));
 
         log.info("{} collected {} scheduled trips", this, this.journeys.size());
     }
@@ -167,7 +168,7 @@ public final class DatabaseImpl implements Database, Serializable {
         return new ScheduledStop(
                 timetabledPassingTime.getId(),
                 scheduledStopPoint,
-                Timespan.timespan(
+                new Timespan(
                         timetabledPassingTime.getArrivalTime(),
                         timetabledPassingTime.getArrivalDayOffset(),
                         timetabledPassingTime.getDepartureTime(),

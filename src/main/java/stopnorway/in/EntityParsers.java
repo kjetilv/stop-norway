@@ -59,9 +59,9 @@ public final class EntityParsers {
                                 data.getId(),
                                 data.getId(StopPointInJourneyPatternRef),
                                 data.getContent(ArrivalTime),
-                                data.getIntContent(ArrivalDayOffset, 0),
+                                data.getIntContent(ArrivalDayOffset),
                                 data.getContent(DepartureTime),
-                                data.getIntContent(DepartureDayOffset, 0)),
+                                data.getIntContent(DepartureDayOffset)),
                         List.of(
                                 ArrivalTime,
                                 ArrivalDayOffset,

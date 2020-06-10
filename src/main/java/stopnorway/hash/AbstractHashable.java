@@ -53,6 +53,14 @@ public abstract class AbstractHashable
 
     private static final String HASH = "MD5";
 
+    private static final ThreadLocal<MessageDigest> MD5 = ThreadLocal.withInitial(() -> {
+        try {
+            return MessageDigest.getInstance(HASH);
+        } catch (Exception e) {
+            throw new IllegalStateException("Expected " + HASH + " implementation", e);
+        }
+    });
+
     private static final long serialVersionUID = -2993413752909173835L;
 
     private final AtomicReference<UUID> hash = new AtomicReference<>();
@@ -164,8 +172,12 @@ public abstract class AbstractHashable
     private UUID uuid() {
 
         MessageDigest md5 = md5();
-        hashTo(md5::update);
-        return UUID.nameUUIDFromBytes(md5.digest());
+        try {
+            hashTo(md5::update);
+            return UUID.nameUUIDFromBytes(md5.digest());
+        } finally {
+            md5.reset();
+        }
     }
 
     private StringBuilder withStringContents(StringBuilder sb) {
@@ -180,12 +192,7 @@ public abstract class AbstractHashable
     }
 
     private static MessageDigest md5() {
-
-        try {
-            return MessageDigest.getInstance(HASH);
-        } catch (Exception e) {
-            throw new IllegalStateException("Expected " + HASH + " implementation", e);
-        }
+        return MD5.get();
     }
 
     private static void hashStrings(Consumer<byte[]> hash, Collection<String> strings) {

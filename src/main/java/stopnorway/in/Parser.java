@@ -51,7 +51,7 @@ public final class Parser implements AutoCloseable {
         this.parsersSupplier = parsersSupplier;
         this.executorServiceProvider = executorServiceProvider;
         this.backgroundLogging =
-                Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "parse-progress"));
+                Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "parse"));
     }
 
     @Override
@@ -76,7 +76,7 @@ public final class Parser implements AutoCloseable {
         Collection<OperatorSource> sources = operators.stream()
                 .flatMap(operatorSources::get)
                 .collect(Collectors.toList());
-        Progress progress = new Progress(sources, operators, Instant.now());
+        ParseProgress progress = new ParseProgress(sources, operators, Instant.now());
         try {
             if (parallel) {
                 return submittedFutures(sources, progress).stream()
@@ -96,7 +96,7 @@ public final class Parser implements AutoCloseable {
         backgroundLogging.shutdown();
     }
 
-    private void logInBackground(Progress progress) {
+    private void logInBackground(ParseProgress progress) {
         backgroundLogging.scheduleAtFixedRate(
                 () -> {
                     if (progress.live()) {
@@ -109,7 +109,7 @@ public final class Parser implements AutoCloseable {
     @NotNull
     private List<Future<Collection<Entity>>> submittedFutures(
             Collection<OperatorSource> sources,
-            Progress progress
+            ParseProgress progress
     ) {
         ExecutorService executorService = executorServiceProvider.apply(sources.size());
         try {
@@ -133,7 +133,7 @@ public final class Parser implements AutoCloseable {
         }
     }
 
-    private Collection<Entity> process(OperatorSource operatorSource, Progress progress) {
+    private Collection<Entity> process(OperatorSource operatorSource, ParseProgress progress) {
         Collection<EntityParser<? extends Entity>> parsers = parsersSupplier.get();
         try {
             XMLEventReader eventReader = operatorSource.eventReader();

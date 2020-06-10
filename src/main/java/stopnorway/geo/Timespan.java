@@ -42,12 +42,6 @@ public final class Timespan {
         }
     }
 
-    public static Timespan timespan(String start, int startOffset, String end, int endOffset) {
-        LocalTime startTime = start == null || start.isBlank() ? null : LocalTime.parse(start.trim());
-        LocalTime endTime = end == null || end.isBlank() ? null : LocalTime.parse(end.trim());
-        return new Timespan(startTime, startOffset, endTime, endOffset);
-    }
-
     @Override
     public String toString() {
         return getClass().getSimpleName() + "[" +
@@ -150,4 +144,5 @@ public final class Timespan {
     private int seconds(LocalTime start) {
         return start.getHour() * 3600 + start.getMinute() * 60 + start.getSecond();
     }
+
 }

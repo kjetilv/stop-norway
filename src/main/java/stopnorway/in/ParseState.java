@@ -46,10 +46,6 @@ class ParseState<E extends Entity> {
         parsedEntities(true).addAll(idMap);
     }
 
-    int count() {
-        return parsedEntities(false).size();
-    }
-
     void setAttribute(Attr attribute, String value) {
         if (attributes == null) {
             attributes = new EnumMap<>(Attr.class);
@@ -73,21 +69,22 @@ class ParseState<E extends Entity> {
         return contents == null ? null : contents.get(field);
     }
 
-    int getIntContent(Field field, int defaultValue) {
+    int getIntContent(Field field) {
         if (contents == null) {
-            return defaultValue;
+            return 0;
         }
         String content = contents.get(field);
         if (content == null) {
-            return defaultValue;
+            return 0;
         }
-        return toInt(field, content, defaultValue, false);
+        return toInt(field, content, 0, false);
     }
 
     int getOrder() {
         return toInt(Attr.order, getAttribute(Attr.order), 0, true);
     }
 
+    @SuppressWarnings("SameParameterValue")
     String getAttribute(Attr attr) {
         if (attributes == null) {
             throw new IllegalArgumentException(this + ": Not found: " + attr);
@@ -192,6 +189,7 @@ class ParseState<E extends Entity> {
                 (field, s) -> s == null ? contents : s + contents);
     }
 
+    @SuppressWarnings("SameParameterValue")
     private int toInt(EnumMatch en, String value, int defaultValue, boolean required) {
         if (value == null) {
             if (required) {
