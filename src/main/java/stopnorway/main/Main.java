@@ -20,12 +20,13 @@ public class Main {
             .resolve("rb_norway-aggregated-netex.zip");
 
     public static void main(String[] args) {
-        Database database = new Databases(ZIP, Operator.class)
-                .get(args.length == 0
-                             ? Collections.emptyList()
-                             : Arrays.stream(args)
-                                     .map(Operator::valueOf)
-                                     .collect(Collectors.toList()));
+        Database database =
+                new Databases(ZIP, Operator.class)
+                        .get(args.length == 0
+                                     ? Collections.emptyList()
+                                     : Arrays.stream(args)
+                                             .map(Operator::valueOf)
+                                             .collect(Collectors.toList()));
         log.info("{}", database);
     }
 }

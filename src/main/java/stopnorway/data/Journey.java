@@ -6,18 +6,22 @@ import stopnorway.database.Id;
 import stopnorway.database.Named;
 import stopnorway.entur.ScheduledStopPoint;
 import stopnorway.geo.Box;
+import stopnorway.geo.Scale;
+import stopnorway.geo.TemporalBox;
 import stopnorway.util.Safe;
 
+import java.time.Duration;
 import java.time.LocalTime;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public final class Journey extends AbstractIdentified implements Boxed, Named, Comparable<Journey> {
 
     private final JourneySpecification journeySpecification;
 
-    private final Collection<ScheduledStop> scheduledStops;
+    private final LinkedList<ScheduledStop> scheduledStops;
 
     private final Box box;
 
@@ -41,7 +45,7 @@ public final class Journey extends AbstractIdentified implements Boxed, Named, C
 
         this.scheduledStops = scheduledStopPointRefs.stream()
                 .map(id -> groups.get(id).removeFirst())
-                .collect(Collectors.toList());
+                .collect(Collectors.toCollection(LinkedList::new));
         this.box = this.journeySpecification.getBox().orElse(null);
     }
 
@@ -51,7 +55,17 @@ public final class Journey extends AbstractIdentified implements Boxed, Named, C
     }
 
     public Optional<LocalTime> getStartTime() {
-        return this.scheduledStops.stream().findFirst().map(ScheduledStop::getParsedLocalTime);
+        if (scheduledStops.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(scheduledStops.getFirst()).map(ScheduledStop::getParsedLocalTime);
+    }
+
+    public Optional<LocalTime> getEndTime() {
+        if (scheduledStops.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(this.scheduledStops.getLast()).map(ScheduledStop::getParsedLocalTime);
     }
 
     public Collection<ScheduledStop> getScheduledStops() {
@@ -75,6 +89,28 @@ public final class Journey extends AbstractIdentified implements Boxed, Named, C
         return o.getStartTime().isEmpty() ? -1
                 : getStartTime().isEmpty() ? 1
                         : getStartTime().flatMap(localTime -> o.getStartTime().map(localTime::compareTo)).orElse(0);
+    }
+
+    public Stream<TemporalBox> getTemporalBoxes(Scale scale, Duration time) {
+        return getStartTime()
+                .flatMap(startTime -> getEndTime()
+                        .map(endTime -> journeySpecification.getServiceLegs().stream()
+                                .map(Map.Entry::getValue)
+                                .flatMap(serviceLeg -> serviceLeg.getTemporalBoxes(
+                                        startTime, endTime, time, scale))))
+                .orElseGet(Stream::empty);
+    }
+
+    boolean overlaps(TemporalBox temporalBox) {
+        return overlaps(temporalBox.getBox()) && getStartTime()
+                .flatMap(start -> getEndTime()
+                        .map(end -> {
+                            LocalTime boxStart = temporalBox.getStart();
+                            LocalTime boxEnd = temporalBox.getEnd();
+                            return start.isBefore(boxStart) && end.isAfter(boxStart) ||
+                                    start.isBefore(boxEnd) && end.isAfter(boxEnd);
+                        })
+                ).isPresent();
     }
 
     private static <K, V extends Comparable<V>> Map<K, LinkedList<V>> group(

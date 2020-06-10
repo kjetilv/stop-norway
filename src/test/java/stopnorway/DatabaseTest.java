@@ -27,7 +27,7 @@ class DatabaseTest {
                 Points.point(59.912921, 10.738953)
         };
         Distance accuracy = Distance.of(10, Unit.M);
-        Collection<JourneySpecification> tripDefinitions = database.getTripDefinitions(
+        Collection<JourneySpecification> tripDefinitions = database.getJourneySpecifications(
                 Arrays.stream(points)
                         .map(point -> point.squareBox(accuracy))
                         .collect(Collectors.toList()));

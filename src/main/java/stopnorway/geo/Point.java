@@ -2,7 +2,13 @@ package stopnorway.geo;
 
 import java.io.Serializable;
 
+import static stopnorway.geo.Points.point;
+
 public interface Point extends Serializable, Comparable<Point> {
+
+    default Box box(double lat, double lon) {
+        return this.box(point(lat, lon));
+    }
 
     default Box box(Point max) {
         return Box.box(this, max);

@@ -4,6 +4,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.esotericsoftware.kryo.serializers.TimeSerializers;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +22,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -28,17 +30,31 @@ public final class Databases {
 
     private static final Logger log = LoggerFactory.getLogger(Databases.class);
 
-    private static final Box DEFAULT_BOX = Points.NORWAY_BOX;
-
-    private static final Scale DEFAULT_SCALE = Scale.DEFAULT;
-
     private final Path zipFile;
 
     private final Collection<? extends Enum<?>> operators;
 
+    private final Box box;
+
+    private final Scale scale;
+
+    private final Duration temporalScale;
+
     public Databases(Path zipFile, Class<? extends Enum<?>> operators) {
+        this(zipFile, operators, null, null, null);
+    }
+
+    public Databases(
+            Path zipFile,
+            Class<? extends Enum<?>> operators,
+            Box box,
+            Scale scale,
+            Duration temporalScale) {
         this.zipFile = zipFile;
         this.operators = Set.of(operators.getEnumConstants());
+        this.box = box == null ? Points.NORWAY_BOX : box;
+        this.scale = scale == null ? Scale.DEFAULT : scale;
+        this.temporalScale = temporalScale == null ? Duration.ofHours(1) : temporalScale;
     }
 
     public Database get(Enum<?>... operators) {
@@ -56,8 +72,6 @@ public final class Databases {
     public Database rebuild(Collection<? extends Enum<?>> operators) {
         return get(
                 Objects.requireNonNull(zipFile, "zipFile"),
-                DEFAULT_BOX,
-                DEFAULT_SCALE,
                 true,
                 false,
                 all(operators),
@@ -69,14 +83,8 @@ public final class Databases {
     }
 
     public Database adhoc(Collection<? extends Enum<?>> operators) {
-        return adhoc(null, null, operators);
-    }
-
-    public Database adhoc(Box box, Scale scale, Collection<? extends Enum<?>> operators) {
         return get(
                 Objects.requireNonNull(zipFile, "zipFile"),
-                box == null ? Points.NORWAY_BOX : box,
-                scale == null ? Scale.DEFAULT : scale,
                 false,
                 false,
                 all(operators),
@@ -86,8 +94,6 @@ public final class Databases {
     public Database get(Box box, Scale scale, Collection<? extends Enum<?>> operators) {
         return get(
                 Objects.requireNonNull(zipFile, "zipFile"),
-                box == null ? Points.NORWAY_BOX : box,
-                scale == null ? Scale.DEFAULT : scale,
                 box == null && scale == null,
                 true,
                 all(operators),
@@ -104,10 +110,8 @@ public final class Databases {
         return operators == null || operators.isEmpty();
     }
 
-    private static Database get(
+    private Database get(
             Path zipFile,
-            Box box,
-            Scale scale,
             boolean dump,
             boolean reuse,
             boolean all,
@@ -124,10 +128,8 @@ public final class Databases {
         Path directory = Importer.unzipped(zipFile, operators);
         ParserFactory parserFactory = new ParserFactory(directory, operators);
         try (Parser parser = parserFactory.create(false, true)) {
-            Database database = new DatabaseImpl(
-                    box == null ? Points.NORWAY_BOX : box,
-                    scale == null ? Scale.DEFAULT : scale,
-                    parser.entities());
+            Database database =
+                    new DatabaseImpl(box, scale, temporalScale, parser.entities());
             if (dump) {
                 write(database, serialForm);
             }
@@ -199,6 +201,7 @@ public final class Databases {
         register(kryo, DatabaseImpl.class, new DatabaseImplSerializer());
         register(kryo, Box.class, new BoxSerializer());
         register(kryo, Scale.class, new ScaleSerializer());
+        register(kryo, Duration.class, new TimeSerializers.DurationSerializer());
         register(kryo, CodedPoint.class, new CodedPointSerializer());
         register(kryo, JourneyPattern.class, new JourneyPatternSerializer());
         register(kryo, Line.class, new LineSerializer());

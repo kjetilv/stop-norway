@@ -1,17 +1,28 @@
 package stopnorway.data;
 
-import stopnorway.database.*;
+import stopnorway.database.AbstractIdentified;
+import stopnorway.database.Boxed;
+import stopnorway.database.Id;
+import stopnorway.database.Ordered;
 import stopnorway.entur.LinkSequenceProjection;
 import stopnorway.entur.ScheduledStopPoint;
 import stopnorway.entur.ServiceLink;
 import stopnorway.geo.Box;
 import stopnorway.geo.Point;
 import stopnorway.geo.Scale;
+import stopnorway.geo.TemporalBox;
 
 import java.io.Serializable;
+import java.time.Duration;
+import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
+import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public final class ServiceLeg extends AbstractIdentified implements Serializable, Ordered, Boxed {
@@ -70,6 +81,27 @@ public final class ServiceLeg extends AbstractIdentified implements Serializable
 
     public Optional<Point> getEndPoint() {
         return this.serviceLink.getEndPoint();
+    }
+
+    public Stream<TemporalBox> getTemporalBoxes(
+            LocalTime start,
+            LocalTime end,
+            Duration temporalAccuracy,
+            Scale spatialAccuray
+    ) {
+        List<Point> points = this.serviceLink.getProjections()
+                .stream()
+                .map(LinkSequenceProjection::getTrajectory)
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList());
+        long millisPerEdge = Duration.between(start, end).toNanos() / (points.size() - 1);
+        return IntStream.range(0, points.size())
+                .mapToObj(i -> points.get(i)
+                        .scaledBox(spatialAccuray)
+                        .during(
+                                start,
+                                start.plus(millisPerEdge * i, ChronoUnit.MILLIS))
+                        .scaledBox(temporalAccuracy));
     }
 
     public int getOrder() {

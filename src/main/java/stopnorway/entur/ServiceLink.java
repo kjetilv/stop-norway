@@ -21,8 +21,6 @@ public final class ServiceLink extends Entity {
 
     private final String distance;
 
-    private final double d;
-
     private final Collection<LinkSequenceProjection> projections;
 
     private final Point start;
@@ -44,7 +42,6 @@ public final class ServiceLink extends Entity {
         this.fromPoint = Objects.requireNonNull(fromPoint, "fromPoint");
         this.toPoint = Objects.requireNonNull(toPoint, "toPoint");
         this.distance = distance;
-        this.d = this.distance == null ? .0F : Double.parseDouble(this.distance);
         this.projections = Accept.list(projections);
 
         this.start = getFirst(LinkSequenceProjection::getStart).orElse(null);

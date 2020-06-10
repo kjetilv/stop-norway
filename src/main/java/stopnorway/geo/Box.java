@@ -1,10 +1,11 @@
 package stopnorway.geo;
 
 import java.io.Serializable;
-import java.util.Collection;
+import java.time.Duration;
+import java.time.LocalTime;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static stopnorway.geo.Points.point;
 
@@ -93,7 +94,7 @@ public final class Box implements Serializable, Comparable<Box> {
         return Objects.hash(min, max);
     }
 
-    public Collection<Box> getScaledBoxes(Scale scale) {
+    public Stream<Box> getScaledBoxes(Scale scale) {
         Box min = min().scaledBox(scale);
         Box max = max().scaledBox(scale);
         Box total = min.combined(max);
@@ -119,13 +120,20 @@ public final class Box implements Serializable, Comparable<Box> {
                                       return minCorner.box(maxCorner);
                                   }))
                 .flatMap(s -> s)
-                .map(box -> box.scaledTo(scale))
-                .collect(Collectors.toList());
+                .map(box -> box.scaledTo(scale));
     }
 
     @Override
     public int compareTo(Box box) {
         return min().compareTo(box.min());
+    }
+
+    public TemporalBox during(LocalTime start, Duration duration) {
+        return new TemporalBox(this, start, duration);
+    }
+
+    public TemporalBox during(LocalTime start, LocalTime end) {
+        return new TemporalBox(this, start, end);
     }
 
     static Box box(Point min, Point max) {

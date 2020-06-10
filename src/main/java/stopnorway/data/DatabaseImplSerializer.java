@@ -10,6 +10,7 @@ import stopnorway.entur.*;
 import stopnorway.geo.Box;
 import stopnorway.geo.Scale;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -38,6 +39,7 @@ public class DatabaseImplSerializer extends AbstractSerializer<DatabaseImpl> {
     public void write(Kryo kryo, Output output, DatabaseImpl object) {
         kryo.writeObject(output, object.getBox());
         kryo.writeObject(output, object.getScale());
+        kryo.writeObject(output, object.getTimescale());
         Map<Class<? extends Entity>, Map<Id, Entity>> typedEntities = object.getTypedEntities();
         ENTITY_TYPES.forEach(
                 entityType -> writeList(
@@ -50,6 +52,7 @@ public class DatabaseImplSerializer extends AbstractSerializer<DatabaseImpl> {
     public DatabaseImpl read(Kryo kryo, Input input, Class<? extends DatabaseImpl> type) {
         Box box = kryo.readObject(input, Box.class);
         Scale scale = kryo.readObject(input, Scale.class);
+        Duration timescale = kryo.readObject(input, Duration.class);
         Map<Class<? extends Entity>, Map<Id, Entity>> typedEntities = new HashMap<>();
         ENTITY_TYPES.forEach(
                 entityType -> typedEntities.put(
@@ -58,7 +61,7 @@ public class DatabaseImplSerializer extends AbstractSerializer<DatabaseImpl> {
                                 .collect(Collectors.toMap(
                                         Entity::getId,
                                         Function.identity()))));
-        return new DatabaseImpl(box, scale, typedEntities);
+        return new DatabaseImpl(box, scale, timescale, typedEntities);
     }
 
 }
