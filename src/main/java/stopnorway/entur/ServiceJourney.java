@@ -7,7 +7,7 @@ import stopnorway.util.Accept;
 import java.util.Collection;
 import java.util.function.Consumer;
 
-public class ServiceJourney extends Entity {
+public final class ServiceJourney extends Entity {
 
     private final String transportMode;
 

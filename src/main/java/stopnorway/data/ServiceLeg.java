@@ -16,11 +16,9 @@ import java.io.Serializable;
 import java.time.Duration;
 import java.time.LocalTime;
 import java.util.Collection;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class ServiceLeg extends AbstractIdentified implements Serializable, Ordered, Boxed {
@@ -86,20 +84,20 @@ public final class ServiceLeg extends AbstractIdentified implements Serializable
             LocalTime end,
             Duration temporalAccuracy
     ) {
-        List<Point> segment = this.serviceLink.getProjections()
+        long segments = this.serviceLink.getProjections()
                 .stream()
                 .map(LinkSequenceProjection::getTrajectory)
-                .flatMap(Collection::stream)
-                .collect(Collectors.toList());
-        long msPerPart = Duration.between(start, end).toNanos() / (segment.size() - 1);
+                .mapToLong(Collection::size)
+                .sum();
+        long msPerPart = Duration.between(start, end).toNanos() / (segments - 1);
         return null;
-//        IntStream.range(0, points.size())
-//                .mapToObj(i -> points.get(i)
-//                        .scaledBox(spatialAccuray)
-//                        .during(
-//                                start,
-//                                start.plus(millisPerEdge * i, ChronoUnit.MILLIS))
-//                        .scaledBoxes(temporalAccuracy));
+        //        IntStream.range(0, points.size())
+        //                .mapToObj(i -> points.get(i)
+        //                        .scaledBox(spatialAccuray)
+        //                        .during(
+        //                                start,
+        //                                start.plus(millisPerEdge * i, ChronoUnit.MILLIS))
+        //                        .scaledBoxes(temporalAccuracy));
     }
 
     public int getOrder() {

@@ -5,7 +5,7 @@ import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import stopnorway.database.AbstractSerializer;
 
-public class LineSerializer extends AbstractSerializer<Line> {
+public final class LineSerializer extends AbstractSerializer<Line> {
 
     @Override
     public void write(Kryo kryo, Output output, Line object) {

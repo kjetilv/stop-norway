@@ -14,6 +14,28 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ServiceLegTest {
 
     @Test
+    void test_timespans() {
+        Id fromId = new Id(Operator.RUT, ScheduledStopPoint.class, "123");
+            Id toId = new Id(Operator.RUT, ScheduledStopPoint.class, "234");
+            LinkSequenceProjection linkSequenceProjection = new LinkSequenceProjection(
+                    new Id(Operator.RUT, LinkSequenceProjection.class, "456"),
+                    Points.point(2d, 1d),
+                    Points.point(3d, 2d),
+                    Points.point(1d, 3d));
+            ServiceLeg serviceLeg = new ServiceLeg(
+                    new Id(Operator.RUT, ServiceLink.class, "234"),
+                    new ScheduledStopPoint(fromId, "Foo"),
+                    new ScheduledStopPoint(toId, "Bar"),
+                    new ServiceLink(
+                            new Id(Operator.RUT, ServiceLink.class, "345"),
+                            fromId,
+                            toId,
+                            "100.0",
+                            linkSequenceProjection));
+
+    }
+
+    @Test
     void test_overlap() {
         Id fromId = new Id(Operator.RUT, ScheduledStopPoint.class, "123");
         Id toId = new Id(Operator.RUT, ScheduledStopPoint.class, "234");

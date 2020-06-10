@@ -34,7 +34,6 @@ public final class Line extends Entity {
     @Override
     protected StringBuilder withStringBody(StringBuilder sb) {
         return super.withStringBody(sb)
-                .append(name)
-                .append(" (").append(transportMode).append(")");
+                .append(name).append("(").append(transportMode).append(")");
     }
 }

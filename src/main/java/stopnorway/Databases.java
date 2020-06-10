@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -201,7 +202,9 @@ public final class Databases {
         register(kryo, DatabaseImpl.class, new DatabaseImplSerializer());
         register(kryo, Box.class, new BoxSerializer());
         register(kryo, Scale.class, new ScaleSerializer());
+        register(kryo, Timespan.class, new TimespanSerializer());
         register(kryo, Duration.class, new TimeSerializers.DurationSerializer());
+        register(kryo, LocalTime.class, new TimeSerializers.LocalTimeSerializer());
         register(kryo, CodedPoint.class, new CodedPointSerializer());
         register(kryo, JourneyPattern.class, new JourneyPatternSerializer());
         register(kryo, Line.class, new LineSerializer());

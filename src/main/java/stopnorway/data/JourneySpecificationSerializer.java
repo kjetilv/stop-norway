@@ -6,7 +6,7 @@ import com.esotericsoftware.kryo.io.Output;
 import stopnorway.database.AbstractSerializer;
 import stopnorway.entur.*;
 
-public class JourneySpecificationSerializer extends AbstractSerializer<JourneySpecification> {
+public final class JourneySpecificationSerializer extends AbstractSerializer<JourneySpecification> {
 
     @Override
     public void write(

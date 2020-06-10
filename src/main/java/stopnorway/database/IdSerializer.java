@@ -10,7 +10,7 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-public class IdSerializer extends AbstractSerializer<Id> {
+public final class IdSerializer extends AbstractSerializer<Id> {
 
     private final Map<String, Integer> opOrdinals;
 

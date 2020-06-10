@@ -1,5 +1,6 @@
 package stopnorway.data;
 
+import org.jetbrains.annotations.NotNull;
 import stopnorway.database.AbstractIdentified;
 import stopnorway.database.Boxed;
 import stopnorway.database.Id;
@@ -54,17 +55,15 @@ public final class Journey extends AbstractIdentified implements Boxed, Named, C
     }
 
     public Optional<LocalTime> getStartTime() {
-        if (scheduledStops.isEmpty()) {
-            return Optional.empty();
-        }
-        return Optional.ofNullable(scheduledStops.getFirst()).map(ScheduledStop::getParsedLocalTime);
+        return departureStop()
+                .map(ScheduledStop::getTimespan)
+                .map(Timespan::getStart);
     }
 
     public Optional<LocalTime> getEndTime() {
-        if (scheduledStops.isEmpty()) {
-            return Optional.empty();
-        }
-        return Optional.ofNullable(this.scheduledStops.getLast()).map(ScheduledStop::getParsedLocalTime);
+        return lastStop()
+                .map(ScheduledStop::getTimespan)
+                .map(Timespan::getEnd);
     }
 
     public Collection<ScheduledStop> getScheduledStops() {
@@ -90,14 +89,12 @@ public final class Journey extends AbstractIdentified implements Boxed, Named, C
                         : getStartTime().flatMap(localTime -> o.getStartTime().map(localTime::compareTo)).orElse(0);
     }
 
-    public Stream<Timespan> getTimespans(Duration duration) {
-        return getStartTime()
-                .flatMap(startTime -> getEndTime()
-                        .map(endTime -> journeySpecification.getServiceLegs().stream()
-                                .map(Map.Entry::getValue)
-                                .flatMap(serviceLeg -> serviceLeg.getTemporalBoxes(
-                                        startTime, endTime, duration))))
-                .orElseGet(Stream::empty);
+    public Stream<Timespan> scaledTimespans(Duration duration) {
+        return departureStop()
+                .flatMap(depatureStop -> lastStop()
+                        .map(lastStop -> depatureStop.getTimespan().combined(lastStop.getTimespan())))
+                .stream()
+                .flatMap(timespan -> timespan.timespans(duration));
     }
 
     boolean overlaps(Timespan temporalBox) {
@@ -110,6 +107,16 @@ public final class Journey extends AbstractIdentified implements Boxed, Named, C
                                     start.isBefore(boxEnd) && end.isAfter(boxEnd);
                         })
                 ).isPresent();
+    }
+
+    @NotNull
+    private Optional<ScheduledStop> departureStop() {
+        return scheduledStops.stream().findFirst();
+    }
+
+    @NotNull
+    private Optional<ScheduledStop> lastStop() {
+        return Optional.ofNullable(this.scheduledStops.getLast());
     }
 
     private static <K, V extends Comparable<V>> Map<K, LinkedList<V>> group(

@@ -8,7 +8,7 @@ import stopnorway.util.Accept;
 import java.util.Collection;
 import java.util.function.Consumer;
 
-public class JourneyPattern extends Entity implements Named {
+public final class JourneyPattern extends Entity implements Named {
 
     private final String name;
 

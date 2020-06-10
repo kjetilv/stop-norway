@@ -10,7 +10,7 @@ import stopnorway.geo.Point;
 
 import java.util.Collection;
 
-public class LinkSequenceProjectionSerializer extends AbstractSerializer<LinkSequenceProjection> {
+public final class LinkSequenceProjectionSerializer extends AbstractSerializer<LinkSequenceProjection> {
 
     @Override
     public void write(Kryo kryo, Output output, LinkSequenceProjection object) {

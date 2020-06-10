@@ -86,8 +86,8 @@ public final class DatabaseImpl implements Database, Serializable {
 
         this.timespannedJoureys = new HashMap<>();
         this.journeys.values()
-                .forEach(journey -> journey.getTimespans(timescale)
-                        .forEach(temporalBox -> add(this.timespannedJoureys, temporalBox, journey)));
+                .forEach(journey -> journey.scaledTimespans(timescale)
+                        .forEach(timespan -> add(this.timespannedJoureys, timespan, journey)));
 
         log.info("{} collected {} scheduled trips", this, this.journeys.size());
     }
@@ -109,12 +109,12 @@ public final class DatabaseImpl implements Database, Serializable {
     @Override
     public Collection<Journey> getJourneys(Collection<Timespan> boxes) {
         return null;
-//        temporallySpatiallyScaled(boxes)
-//                .flatMap(scaledBox ->
-//                        boxed(this.temporallyBoxedJourney, scaledBox))
-//                .filter(journey ->
-//                        overlapping(boxes, journey))
-//                .collect(Collectors.toList());
+        //        temporallySpatiallyScaled(boxes)
+        //                .flatMap(scaledBox ->
+        //                        boxed(this.temporallyBoxedJourney, scaledBox))
+        //                .filter(journey ->
+        //                        overlapping(boxes, journey))
+        //                .collect(Collectors.toList());
     }
 
     @Override
@@ -167,7 +167,11 @@ public final class DatabaseImpl implements Database, Serializable {
         return new ScheduledStop(
                 timetabledPassingTime.getId(),
                 scheduledStopPoint,
-                timetabledPassingTime.getDepartureTime());
+                Timespan.timespan(
+                        timetabledPassingTime.getArrivalTime(),
+                        timetabledPassingTime.getArrivalDayOffset(),
+                        timetabledPassingTime.getDepartureTime(),
+                        timetabledPassingTime.getDepartureDayOffset()));
     }
 
     private boolean overlapping(Collection<Box> boxes, Boxed boxable) {
@@ -256,10 +260,10 @@ public final class DatabaseImpl implements Database, Serializable {
         return boxes.stream().flatMap(box -> box.getScaledBoxes(scale));
     }
 
-//    @NotNull
-//    private Stream<Timespan> temporallySpatiallyScaled(Collection<Timespan> boxes) {
-//        return boxes.stream().flatMap(box -> box.scaledBoxes(scale, timescale));
-//    }
+    //    @NotNull
+    //    private Stream<Timespan> temporallySpatiallyScaled(Collection<Timespan> boxes) {
+    //        return boxes.stream().flatMap(box -> box.scaledBoxes(scale, timescale));
+    //    }
 
     private <K, T> Stream<T> boxed(Map<K, Collection<T>> boxed, K box) {
         return Optional.ofNullable(boxed.get(box)).map(Collection::stream).stream().flatMap(s -> s);

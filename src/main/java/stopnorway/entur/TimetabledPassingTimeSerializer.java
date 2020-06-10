@@ -5,7 +5,7 @@ import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import stopnorway.database.AbstractSerializer;
 
-public class TimetabledPassingTimeSerializer extends AbstractSerializer<TimetabledPassingTime> {
+public final class TimetabledPassingTimeSerializer extends AbstractSerializer<TimetabledPassingTime> {
 
     @Override
     public void write(Kryo kryo, Output output, TimetabledPassingTime object) {

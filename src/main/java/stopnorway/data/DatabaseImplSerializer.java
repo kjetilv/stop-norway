@@ -18,7 +18,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class DatabaseImplSerializer extends AbstractSerializer<DatabaseImpl> {
+public final class DatabaseImplSerializer extends AbstractSerializer<DatabaseImpl> {
 
     private static final List<Class<? extends Entity>> ENTITY_TYPES = Arrays.asList(
             StopPointInJourneyPattern.class,

@@ -27,16 +27,25 @@ public final class Timespan {
     }
 
     public Timespan(LocalTime start, int startOffset, LocalTime end, int endOffset) {
-        this.start = start;
-        this.startOffset = startOffset;
-        this.end = end;
-        this.endOffset = endOffset;
+        if (start == null && end == null) {
+            throw new IllegalStateException("Expected start and/or end");
+        }
+        this.start = start == null ? end : start;
+        this.startOffset = start == null ? endOffset : startOffset;
+        this.end = end == null ? start : end;
+        this.endOffset = end == null ? startOffset : endOffset;
         if (this.startOffset < 0) {
             throw new IllegalArgumentException("Invalid start offset: " + startOffset);
         }
         if (this.endOffset < startOffset) {
             throw new IllegalArgumentException("Invalid end offset < startOffset " + startOffset + ": " + endOffset);
         }
+    }
+
+    public static Timespan timespan(String start, int startOffset, String end, int endOffset) {
+        LocalTime startTime = start == null || start.isBlank() ? null : LocalTime.parse(start.trim());
+        LocalTime endTime = end == null || end.isBlank() ? null : LocalTime.parse(end.trim());
+        return new Timespan(startTime, startOffset, endTime, endOffset);
     }
 
     @Override
@@ -63,11 +72,11 @@ public final class Timespan {
     }
 
     public Timespan earliest(Timespan other) {
-        return startSeconds() < other.startSeconds() ? this : other;
+        return isBefore(other) ? this : other;
     }
 
     public Timespan latest(Timespan other) {
-        return endSeconds() > other.endSeconds() ? this : other;
+        return isAfter(other) ? this : other;
     }
 
     public Timespan combined(Timespan timespan) {
@@ -112,6 +121,14 @@ public final class Timespan {
 
     public Duration getDuration() {
         return Duration.ofSeconds(endSeconds() - startSeconds());
+    }
+
+    public boolean isBefore(Timespan other) {
+        return startSeconds() < other.startSeconds();
+    }
+
+    public boolean isAfter(Timespan other) {
+        return endSeconds() > other.endSeconds();
     }
 
     private int endSeconds() {

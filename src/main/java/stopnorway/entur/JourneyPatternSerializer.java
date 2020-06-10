@@ -5,7 +5,7 @@ import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import stopnorway.database.AbstractSerializer;
 
-public class JourneyPatternSerializer extends AbstractSerializer<JourneyPattern> {
+public final class JourneyPatternSerializer extends AbstractSerializer<JourneyPattern> {
 
     @Override
     public void write(Kryo kryo, Output output, JourneyPattern object) {

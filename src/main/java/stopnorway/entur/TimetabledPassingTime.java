@@ -5,7 +5,7 @@ import stopnorway.database.Id;
 
 import java.util.function.Consumer;
 
-public class TimetabledPassingTime extends Entity {
+public final class TimetabledPassingTime extends Entity {
 
     private final Id stopPointInJourneyPatternRef;
 
