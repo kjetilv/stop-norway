@@ -1,6 +1,6 @@
 package stopnorway.data;
 
-import org.jetbrains.annotations.NotNull;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import stopnorway.Database;
@@ -256,12 +256,12 @@ public final class DatabaseImpl implements Database, Serializable {
         }).collect(Collectors.toList());
     }
 
-    @NotNull
+
     private Stream<Box> spatiallyScaled(Collection<Box> boxes) {
         return boxes.stream().flatMap(box -> box.getScaledBoxes(scale));
     }
 
-    //    @NotNull
+    //
     //    private Stream<Timespan> temporallySpatiallyScaled(Collection<Timespan> boxes) {
     //        return boxes.stream().flatMap(box -> box.scaledBoxes(scale, timescale));
     //    }

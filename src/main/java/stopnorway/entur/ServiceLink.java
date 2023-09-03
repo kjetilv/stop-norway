@@ -1,6 +1,6 @@
 package stopnorway.entur;
 
-import org.jetbrains.annotations.NotNull;
+
 import stopnorway.database.Entity;
 import stopnorway.database.Id;
 import stopnorway.geo.Point;
@@ -83,7 +83,7 @@ public final class ServiceLink extends Entity {
         return super.withStringBody(sb).append(fromPoint).append("->").append(toPoint);
     }
 
-    @NotNull
+
     private Optional<Point> getFirst(Function<LinkSequenceProjection, Optional<Point>> getStart) {
         return projections.stream()
                 .map(getStart)

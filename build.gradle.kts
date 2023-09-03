@@ -1,47 +1,31 @@
 plugins {
     java
-    kotlin("jvm") version "1.3.72"
 }
 
 group = "org.example"
 version = "1.0-SNAPSHOT"
 
 repositories {
+    mavenLocal()
     mavenCentral()
 }
 
 dependencies {
-    implementation(kotlin("stdlib-jdk8"))
-    implementation(kotlin("stdlib-js"))
+    implementation("ch.qos.logback:logback-classic:1.4.11")
+    implementation("com.fasterxml.woodstox:woodstox-core:6.5.1")
+    implementation("com.esotericsoftware:kryo:5.5.0")
 
-    implementation("ch.qos.logback:logback-classic:1.2.3")
-    implementation("org.codehaus.woodstox:stax2-api:4.2.1")
-    implementation("com.esotericsoftware:kryo:5.0.0-RC6")
-
-    testImplementation("org.junit.jupiter:junit-jupiter:5.6.2")
-    testImplementation("org.assertj:assertj-core:3.16.1")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
+    testImplementation("org.assertj:assertj-core:3.24.2")
 }
 
-configure<JavaPluginConvention> {
-    sourceCompatibility = JavaVersion.VERSION_11
+configure<JavaPluginExtension> {
+    sourceCompatibility = JavaVersion.VERSION_20
+    targetCompatibility = JavaVersion.VERSION_20
+    withSourcesJar()
 }
 
-java {
-    modularity.inferModulePath.set(true)
-}
 
 tasks.test {
-	useJUnitPlatform()
-	testLogging {
-		events("passed", "skipped", "failed")
-	}
-}
-
-tasks {
-    compileKotlin {
-        kotlinOptions.jvmTarget = "1.8"
-    }
-    compileTestKotlin {
-        kotlinOptions.jvmTarget = "1.8"
-    }
+    useJUnitPlatform()
 }

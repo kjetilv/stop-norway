@@ -5,7 +5,7 @@ import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.TimeSerializers;
-import org.jetbrains.annotations.NotNull;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import stopnorway.data.*;
@@ -176,7 +176,7 @@ public final class Databases {
         }
     }
 
-    @NotNull
+
     private static Kryo kryo() {
         Kryo kryo = new Kryo();
         kryo.setWarnUnregisteredClasses(true);

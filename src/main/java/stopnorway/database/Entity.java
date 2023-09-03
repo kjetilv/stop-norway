@@ -15,16 +15,16 @@ public abstract class Entity extends AbstractHashable {
     }
 
     @Override
-    protected StringBuilder withStringBody(StringBuilder sb) {
-        return sb.append(id);
-    }
-
-    @Override
     public void hashTo(Consumer<byte[]> h) {
         hash(h, id);
     }
 
     public Id getId() {
         return id;
+    }
+
+    @Override
+    protected StringBuilder withStringBody(StringBuilder sb) {
+        return sb.append(id);
     }
 }

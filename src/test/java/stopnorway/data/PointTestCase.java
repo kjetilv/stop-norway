@@ -1,6 +1,6 @@
 package stopnorway.data;
 
-import org.jetbrains.annotations.NotNull;
+
 import org.junit.jupiter.api.Test;
 import stopnorway.geo.Distance;
 import stopnorway.geo.Point;

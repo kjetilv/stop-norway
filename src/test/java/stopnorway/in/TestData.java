@@ -1,6 +1,6 @@
 package stopnorway.in;
 
-import org.jetbrains.annotations.NotNull;
+
 import stopnorway.Database;
 import stopnorway.Databases;
 import stopnorway.data.Operator;
@@ -12,7 +12,7 @@ public class TestData {
             .resolve("Downloads")
             .resolve("rb_norway-aggregated-netex.zip");
 
-    @NotNull
+
     public static Database getDatabase(Operator... operators) {
         Databases databases = new Databases(ZIP, Operator.class);
         return databases.adhoc(operators);

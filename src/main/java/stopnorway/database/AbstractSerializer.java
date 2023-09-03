@@ -4,7 +4,6 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.AbstractMap;
 import java.util.Collection;
@@ -24,16 +23,17 @@ public abstract class AbstractSerializer<S> extends Serializer<S> {
     }
 
     protected <K, V> Collection<Map.Entry<K, V>> readMapEntries(
-            Kryo kryo,
-            Input input,
-            Class<? extends K> k,
-            Class<? extends V> v
+        Kryo kryo,
+        Input input,
+        Class<? extends K> k,
+        Class<? extends V> v
     ) {
         return IntStream.range(0, input.readInt(true))
-                .mapToObj(i -> new AbstractMap.SimpleEntry<K, V>(
-                        kryo.readObject(input, k),
-                        kryo.readObject(input, v)))
-                .collect(Collectors.toList());
+            .mapToObj(i -> new AbstractMap.SimpleEntry<K, V>(
+                kryo.readObject(input, k),
+                kryo.readObject(input, v)
+            ))
+            .collect(Collectors.toList());
     }
 
     protected <T> void writeList(Kryo kryo, Output output, Collection<? extends T> ts) {
@@ -47,7 +47,6 @@ public abstract class AbstractSerializer<S> extends Serializer<S> {
         return stream.collect(Collectors.toList());
     }
 
-    @NotNull
     protected <T> Stream<? extends T> readStream(Kryo kryo, Input input, Class<? extends T> type) {
         int size = input.readInt(true);
         return IntStream.range(0, size).mapToObj(i -> kryo.readObject(input, type));

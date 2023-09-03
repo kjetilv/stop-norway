@@ -1,6 +1,6 @@
 package stopnorway.in;
 
-import org.jetbrains.annotations.NotNull;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import stopnorway.database.Entity;
@@ -106,7 +106,7 @@ public final class Parser implements AutoCloseable {
                 2, 8, TimeUnit.SECONDS);
     }
 
-    @NotNull
+
     private List<Future<Collection<Entity>>> submittedFutures(
             Collection<OperatorSource> sources,
             ParseProgress progress

@@ -1,6 +1,6 @@
 package stopnorway.data;
 
-import org.jetbrains.annotations.NotNull;
+
 import stopnorway.database.AbstractIdentified;
 import stopnorway.database.Boxed;
 import stopnorway.database.Id;
@@ -37,7 +37,7 @@ public final class Journey extends AbstractIdentified implements Boxed, Named, C
                 .map(Map.Entry::getValue)
                 .filter(Objects::nonNull)
                 .map(ScheduledStopPoint::getId)
-                .collect(Collectors.toList());
+                .toList();
 
         Map<Id, LinkedList<ScheduledStop>> groups = group(
                 scheduledStops,
@@ -111,12 +111,12 @@ public final class Journey extends AbstractIdentified implements Boxed, Named, C
                 ).isPresent();
     }
 
-    @NotNull
+
     private Optional<ScheduledStop> departureStop() {
         return scheduledStops.stream().findFirst();
     }
 
-    @NotNull
+
     private Optional<ScheduledStop> lastStop() {
         return Optional.ofNullable(this.scheduledStops.getLast());
     }

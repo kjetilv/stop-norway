@@ -1,6 +1,6 @@
 package stopnorway.data;
 
-import org.jetbrains.annotations.NotNull;
+
 import stopnorway.database.AbstractIdentified;
 import stopnorway.database.Id;
 import stopnorway.database.Named;
@@ -30,7 +30,7 @@ public final class ScheduledStop extends AbstractIdentified implements Named, Co
     }
 
     @Override
-    public int compareTo(@NotNull ScheduledStop stop) {
+    public int compareTo( ScheduledStop stop) {
         return timespan.isBefore(stop.getTimespan()) ? -1
                 : timespan.isAfter(stop.getTimespan()) ? 1
                 : 0;

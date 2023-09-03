@@ -1,6 +1,6 @@
 package stopnorway.entur;
 
-import org.jetbrains.annotations.NotNull;
+
 import stopnorway.database.Entity;
 import stopnorway.database.Id;
 import stopnorway.geo.Box;
@@ -50,14 +50,14 @@ public final class LinkSequenceProjection extends Entity {
         return trajectory.isEmpty() ? Optional.empty() : Optional.of(trajectory.get(trajectory.size() - 1));
     }
 
-    @NotNull
+
     private Optional<Point> computeMax() {
         return this.trajectory.stream()
                 .max(Comparator.comparing(Point::lat))
                 .flatMap(lat -> this.trajectory.stream().max(Comparator.comparing(Point::lon)).map(lat::lon));
     }
 
-    @NotNull
+
     private Optional<Point> computeMin() {
         return this.trajectory.stream()
                 .min(Comparator.comparing(Point::lat))

@@ -7,7 +7,22 @@ import java.util.function.Consumer;
 
 public final class Id extends AbstractHashable {
 
-    private static final int OP_MARK = 3;
+    public static Id id(Enum<?> operator, String type, String id) {
+        return id(operator.name(), type, id);
+    }
+
+    public static Id id(String operator, String type, String id) {
+        return new Id(operator, type, id);
+    }
+
+    public static Id parse(String attribute) {
+        int idMark = attribute.indexOf(':', OP_MARK + 1);
+        return new Id(
+            attribute.substring(0, OP_MARK),
+            attribute.substring(OP_MARK + 1, idMark),
+            attribute.substring(idMark + 1)
+        );
+    }
 
     private final String operator;
 
@@ -28,14 +43,6 @@ public final class Id extends AbstractHashable {
         this.operator = Objects.requireNonNull(operator, "operator");
         this.type = Objects.requireNonNull(type, "type");
         this.id = Objects.requireNonNull(id, "id");
-    }
-
-    public static Id id(Enum<?> operator, String type, String id) {
-        return id(operator.name(), type, id);
-    }
-
-    public static Id id(String operator, String type, String id) {
-        return new Id(operator, type, id);
     }
 
     public String getOperator() {
@@ -59,18 +66,12 @@ public final class Id extends AbstractHashable {
         return this.type.equals(type.getSimpleName());
     }
 
-    public static Id parse(String attribute) {
-        int idMark = attribute.indexOf(':', OP_MARK + 1);
-        return new Id(
-                attribute.substring(0, OP_MARK),
-                attribute.substring(OP_MARK + 1, idMark),
-                attribute.substring(idMark + 1));
-    }
-
     @Override
     protected StringBuilder withStringBody(StringBuilder sb) {
         return sb.append(operator)
-                .append(":").append(type)
-                .append(":").append(id);
+            .append(":").append(type)
+            .append(":").append(id);
     }
+
+    private static final int OP_MARK = 3;
 }

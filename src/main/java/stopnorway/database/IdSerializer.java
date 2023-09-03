@@ -23,18 +23,24 @@ public final class IdSerializer extends AbstractSerializer<Id> {
     public IdSerializer(Class<? extends Enum<?>> opType, Class<?>... classes) {
 
         Enum<?>[] ops = Objects.requireNonNull(opType, "opType").getEnumConstants();
-        opOrdinals = Arrays.stream(ops).collect(Collectors.toMap(Enum::name, Enum::ordinal));
-        opNames = Arrays.stream(ops).collect(Collectors.toMap(Enum::ordinal, Enum::name));
+        opOrdinals = Arrays.stream(ops)
+            .collect(Collectors.toMap(Enum::name, Enum::ordinal));
+        opNames = Arrays.stream(ops)
+            .collect(Collectors.toMap(Enum::ordinal, Enum::name));
 
         AtomicInteger typeIndex = new AtomicInteger();
-        classBytes = Arrays.stream(classes).collect(Collectors.toMap(
+        classBytes = Arrays.stream(classes)
+            .collect(Collectors.toMap(
                 Class::getSimpleName,
-                type -> typeIndex.getAndIncrement()));
+                type -> typeIndex.getAndIncrement()
+            ));
 
         AtomicInteger numberIndex = new AtomicInteger();
-        this.byteClasses = Arrays.stream(classes).collect(Collectors.toMap(
+        this.byteClasses = Arrays.stream(classes)
+            .collect(Collectors.toMap(
                 type -> numberIndex.getAndIncrement(),
-                Class::getSimpleName));
+                Class::getSimpleName
+            ));
     }
 
     @Override
@@ -54,14 +60,15 @@ public final class IdSerializer extends AbstractSerializer<Id> {
         String id = readString(input);
         try {
             return Id.id(
-                    opNames.get(opNo),
-                    byteClasses.get(classNo),
-                    id);
+                opNames.get(opNo),
+                byteClasses.get(classNo),
+                id
+            );
         } catch (Exception e) {
             throw new IllegalStateException(
-                    "Failed to find " +
-                            "op#" + opNo + ":class#" + classNo + ":" + id +
-                            ": " + opNames + ", " + byteClasses, e);
+                "Failed to find " +
+                    "op#" + opNo + ":class#" + classNo + ":" + id +
+                    ": " + opNames + ", " + byteClasses, e);
         }
     }
 }

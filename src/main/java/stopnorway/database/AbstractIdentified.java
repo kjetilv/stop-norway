@@ -15,13 +15,13 @@ public class AbstractIdentified {
     }
 
     @Override
-    public final boolean equals(Object o) {
-        return this == o || o != null && getClass() == o.getClass() &&
-                Objects.equals(id, ((AbstractIdentified) o).id);
+    public final int hashCode() {
+        return Objects.hash(id);
     }
 
     @Override
-    public final int hashCode() {
-        return Objects.hash(id);
+    public final boolean equals(Object o) {
+        return this == o || o != null && getClass() == o.getClass() &&
+            Objects.equals(id, ((AbstractIdentified) o).id);
     }
 }
