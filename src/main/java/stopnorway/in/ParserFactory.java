@@ -36,15 +36,15 @@ public final class ParserFactory {
                 parallel,
                 operators,
                 this::operatorSources,
-                this::allEntityParsers,
-                this::executorService);
+                ParserFactory::allEntityParsers,
+                ParserFactory::executorService);
     }
 
-    private List<EntityParser<? extends Entity>> allEntityParsers() {
+    private static List<EntityParser<? extends Entity>> allEntityParsers() {
         return EntityParsers.all(Points::point);
     }
 
-    private ExecutorService executorService(int queue) {
+    private static ExecutorService executorService(int queue) {
         AtomicInteger count = new AtomicInteger();
         int cpus = Runtime.getRuntime().availableProcessors();
         return new ThreadPoolExecutor(

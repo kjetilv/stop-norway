@@ -1,6 +1,5 @@
 package stopnorway.in;
 
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -9,16 +8,11 @@ import java.nio.file.*;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 public final class Importer {
 
-    static final String SUFF = ".zip";
-
     private static final Logger log = LoggerFactory.getLogger(Importer.class);
-
-    private Importer() {
-
-    }
 
     public static Path targetPath(Path zipFile) {
         String fileName = zipFile.getFileName().toString();
@@ -47,26 +41,32 @@ public final class Importer {
             throw new IllegalArgumentException("Could not establish directory " + targetPath);
         }
         try (
-                FileSystem fileSystem = FileSystems.newFileSystem(zipFile, ClassLoader.getSystemClassLoader())
+            FileSystem fileSystem = FileSystems.newFileSystem(zipFile, ClassLoader.getSystemClassLoader())
         ) {
             log.info("{}: Copying to {} ...", zipFile, targetPath);
             fileSystem.getRootDirectories()
-                    .forEach(path -> {
-                        log.info("Copying root {} to {} ...", path, targetPath);
-                        copyAll(path, targetPath, sources);
-                    });
+                .forEach(path -> {
+                    log.info("Copying root {} to {} ...", path, targetPath);
+                    copyAll(path, targetPath, sources);
+                });
         } catch (Exception e) {
             throw new IllegalArgumentException("Failed to open " + zipFile, e);
         }
         return targetPath;
     }
 
+    private Importer() {
+
+    }
+
+    static final String SUFF = ".zip";
+
     private static void copyAll(Path path, Path target, Collection<? extends Enum<?>> sources) {
         try {
             AtomicInteger counter = new AtomicInteger();
             AtomicInteger copied = new AtomicInteger();
-            Files.walk(path)
-                    .filter(file -> file.getFileName() != null)
+            try (Stream<Path> walk = Files.walk(path)) {
+                walk.filter(file -> file.getFileName() != null)
                     .filter(file -> sources.isEmpty() || sourceMatch(file, sources))
                     .filter(file -> file.getFileName().toString().endsWith(".xml"))
                     .forEach(file -> {
@@ -75,15 +75,17 @@ public final class Importer {
                             copied.incrementAndGet();
                         }
                     });
+            }
             log.info("Copied {}/{} files to {}", copied, counter, target);
         } catch (Exception e) {
             throw new IllegalArgumentException(
-                    "Failed to walk " + path, e);
+                "Failed to walk " + path, e);
         }
     }
 
     private static boolean sourceMatch(Path file, Collection<? extends Enum<?>> sources) {
-        return sources.stream().map(Enum::name).anyMatch(file.getFileName().toString()::contains);
+        return sources.stream()
+            .map(Enum::name).anyMatch(file.getFileName().toString()::contains);
     }
 
     private static boolean copy(Path source, Path target, int count) {
@@ -107,15 +109,15 @@ public final class Importer {
             return false;
         } catch (Exception e) {
             throw new IllegalArgumentException(
-                    "Failed to copy " + source + " to " + target, e);
+                "Failed to copy " + source + " to " + target, e);
         }
     }
 
     private static boolean shouldLog(int count) {
         return count < 3 ||
-                count < 100 && count % 10 == 0 ||
-                count < 1_000 && count % 100 == 0 ||
-                count < 10_000 && count % 500 == 0;
+               count < 100 && count % 10 == 0 ||
+               count < 1_000 && count % 100 == 0 ||
+               count < 10_000 && count % 500 == 0;
     }
 
 }
